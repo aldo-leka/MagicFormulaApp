@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34408.163
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Magic Formula App", "Magic Formula App\Magic Formula App.csproj", "{E7623B54-E226-40DB-96BC-0A47A16FB008}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Magic Formula App", "Magic Formula App\Magic Formula App.csproj", "{E7623B54-E226-40DB-96BC-0A47A16FB008}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecImporter", "SecImporter\SecImporter.csproj", "{D3B5B08E-0788-4719-9584-C192EE6C0980}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{561799AE-215E-4E05-A4B1-5A4CE619AE23}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{E7623B54-E226-40DB-96BC-0A47A16FB008}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E7623B54-E226-40DB-96BC-0A47A16FB008}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E7623B54-E226-40DB-96BC-0A47A16FB008}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3B5B08E-0788-4719-9584-C192EE6C0980}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3B5B08E-0788-4719-9584-C192EE6C0980}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3B5B08E-0788-4719-9584-C192EE6C0980}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3B5B08E-0788-4719-9584-C192EE6C0980}.Release|Any CPU.Build.0 = Release|Any CPU
+		{561799AE-215E-4E05-A4B1-5A4CE619AE23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{561799AE-215E-4E05-A4B1-5A4CE619AE23}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{561799AE-215E-4E05-A4B1-5A4CE619AE23}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{561799AE-215E-4E05-A4B1-5A4CE619AE23}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -5,6 +5,103 @@
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <form>
+        <p>
+            Market Capitalization <input type="text" asp-for="MarketCapitalization" />
+            Return on Assets <input type="text" asp-for="ReturnOnAssets" />
+            Operating Income / Enterprise Value <input type="text" asp-for="OperatingIncomeToEnterpriseValue" />
+            Sector <input type="text" asp-for="Sector" />
+            Country <input type="text" asp-for="Country" />
+            <input type="submit" value="Fetch Screen" />
+        </p>
+    </form>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].Ticker)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].CompanyName)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].MarketCapitalization)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].EnterpriseValue)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].OperatingIncome)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].OperatingIncomeToEnterpriseValue)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].NetCurrentAssets)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].NetPropertyPlantAndEquipment)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].EmployedCapital)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].ReturnOnAssets)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].Sector)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].Country)
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.ScreenItems)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Ticker)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.CompanyName)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.MarketCapitalization)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.EnterpriseValue)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.OperatingIncome)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.OperatingIncomeToEnterpriseValue)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.NetCurrentAssets)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.NetPropertyPlantAndEquipment)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.EmployedCapital)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.ReturnOnAssets)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Sector)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Country)
+                    </td>
+                    <td>
+                        <a asp-page="./Details" asp-route-id="@item.Ticker">Details</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
 </div>
