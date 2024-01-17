@@ -447,7 +447,7 @@ namespace SecImporter
     public class Count
     {
         public string end { get; set; }
-        public double val { get; set; }
+        public decimal val { get; set; }
         public string accn { get; set; }
         public int? fy { get; set; }
         public string fp { get; set; }
@@ -815,7 +815,7 @@ namespace SecImporter
     public class Derivativeinstrument
     {
         public string end { get; set; }
-        public double val { get; set; }
+        public decimal val { get; set; }
         public string accn { get; set; }
         public int? fy { get; set; }
         public string fp { get; set; }
@@ -1336,6 +1336,13 @@ namespace SecImporter
         public Units units { get; set; }
     }
 
+    public class OperatingIncomeLoss
+    {
+        public string label { get; set; }
+        public string description { get; set; }
+        public Units units { get; set; }
+    }
+
     public class IncomeLossFromContinuingOperationsIncludingPortionAttributableToNoncontrollingInterest
     {
         public string label { get; set; }
@@ -1731,7 +1738,7 @@ namespace SecImporter
     public class Item
     {
         public string end { get; set; }
-        public double val { get; set; }
+        public decimal val { get; set; }
         public string accn { get; set; }
         public int? fy { get; set; }
         public string fp { get; set; }
@@ -2752,7 +2759,7 @@ namespace SecImporter
     public class Pure
     {
         public string end { get; set; }
-        public double val { get; set; }
+        public decimal val { get; set; }
         public string accn { get; set; }
         public int? fy { get; set; }
         public string fp { get; set; }
@@ -2977,7 +2984,7 @@ namespace SecImporter
     {
         public string start { get; set; }
         public string end { get; set; }
-        public double val { get; set; }
+        public decimal val { get; set; }
         public string accn { get; set; }
         public int? fy { get; set; }
         public string fp { get; set; }
@@ -2996,7 +3003,7 @@ namespace SecImporter
     public class Share
     {
         public string end { get; set; }
-        public double val { get; set; }
+        public decimal val { get; set; }
         public string accn { get; set; }
         public int? fy { get; set; }
         public string fp { get; set; }
@@ -3262,7 +3269,7 @@ namespace SecImporter
     public class USD
     {
         public string end { get; set; }
-        public double val { get; set; }
+        public decimal val { get; set; }
         public string accn { get; set; }
         public int? fy { get; set; }
         public string fp { get; set; }
@@ -3276,7 +3283,7 @@ namespace SecImporter
     {
         public string start { get; set; }
         public string end { get; set; }
-        public double val { get; set; }
+        public decimal val { get; set; }
         public string accn { get; set; }
         public int? fy { get; set; }
         public string fp { get; set; }
@@ -3454,6 +3461,7 @@ namespace SecImporter
         public GoodwillWrittenOffRelatedToSaleOfBusinessUnit GoodwillWrittenOffRelatedToSaleOfBusinessUnit { get; set; }
         public GrossProfit GrossProfit { get; set; }
         public IncomeLossFromContinuingOperations IncomeLossFromContinuingOperations { get; set; }
+        public OperatingIncomeLoss OperatingIncomeLoss { get; set; }
         public IncomeLossFromContinuingOperationsIncludingPortionAttributableToNoncontrollingInterest IncomeLossFromContinuingOperationsIncludingPortionAttributableToNoncontrollingInterest { get; set; }
         public IncomeLossFromContinuingOperationsPerBasicAndDilutedShare IncomeLossFromContinuingOperationsPerBasicAndDilutedShare { get; set; }
         public IncomeLossFromContinuingOperationsPerBasicShare IncomeLossFromContinuingOperationsPerBasicShare { get; set; }
@@ -3763,7 +3771,7 @@ namespace SecImporter
     public class Y
     {
         public string end { get; set; }
-        public double val { get; set; }
+        public decimal val { get; set; }
         public string accn { get; set; }
         public int? fy { get; set; }
         public string fp { get; set; }

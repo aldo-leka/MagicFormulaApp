@@ -1,13 +1,19 @@
-﻿using SecImporter;
-using SecImporter.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using SecImporter;
+using Shared;
+using Shared.Models;
 using System.Diagnostics;
 using System.Text.Json;
 
 var stopwatch = new Stopwatch();
+var total = new Stopwatch();
 
 stopwatch.Start();
+total.Start();
 
-var companyFiles = Directory.GetFiles(@"location\to\companyfacts");
+var companiesFolder = @"C:\Users\aldol\source\repos\MagicFormulaApp\MagicFormulaApp\Magic Formula App\SecImporter\companyfacts";
+var companyFiles = Directory.GetFiles(companiesFolder);
 
 stopwatch.Stop();
 
@@ -15,13 +21,27 @@ Console.WriteLine($"{stopwatch.Elapsed.TotalMilliseconds} ms\tFound {companyFile
 
 if (companyFiles.Length > 0)
 {
-    // As the time it takes for the entire folder to be imported can be very long, you can apply "stop":"yes" at the config file.
-    var stop = false;
+    IConfigurationRoot configuration = new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json")
+        .Build();
+
+    Settings settings = configuration.GetRequiredSection("Settings").Get<Settings>();
+
+    // As the time it takes for the entire folder to be imported can be very long,
+    // you can apply "SecImporterForceQuit":"yes" at the appsettings.json file in realtime to halt the process.
+    var quit = false;
     var curr = 0;
     var currInBatch = 0;
+    var imported = 0;
     var batch = 10;
-    //var dateFormat = "yyyy-MM-dd";
-    var db = new CompanyData();
+    var connectionString = configuration.GetConnectionString(settings.DatabaseProvider);
+    CompanyData db = settings.DatabaseProvider switch
+    {
+        DatabaseProvider.SqlServer => new SqlServerCompanyData(),
+        DatabaseProvider.Sqlite => new SqliteCompanyData(),
+        DatabaseProvider.Postgres => new PostgresCompanyData(),
+        _ => throw new Exception($"Unsupported database provider: {settings.DatabaseProvider}"),
+    };
 
     do
     {
@@ -31,57 +51,155 @@ if (companyFiles.Length > 0)
         using StreamReader reader = new(companyData);
         string jsonString = reader.ReadToEnd();
         var root = JsonSerializer.Deserialize<Root>(jsonString);
-        if (root.cik != null && root.entityName != null && root.facts.dei != null)
+
+        if (root.cik != null && root.entityName != null && root.facts.usgaap != null
+            && root.facts.dei != null && root.facts.dei.EntityPublicFloat != null && root.facts.dei.EntityPublicFloat.units.USD != null
+            && root.facts.usgaap.AssetsCurrent != null && root.facts.usgaap.AssetsCurrent.units.USD != null
+            && root.facts.usgaap.CashAndCashEquivalentsAtCarryingValue != null && root.facts.usgaap.CashAndCashEquivalentsAtCarryingValue.units.USD != null
+            && root.facts.usgaap.PropertyPlantAndEquipmentNet != null && root.facts.usgaap.PropertyPlantAndEquipmentNet.units.USD != null
+            && ((root.facts.usgaap.LongTermDebt != null
+                    && root.facts.usgaap.LongTermDebt.units.USD != null)
+                    || (root.facts.usgaap.LongTermDebtAndCapitalLeaseObligations != null
+                        && root.facts.usgaap.LongTermDebtAndCapitalLeaseObligations.units.USD != null))
+            && ((root.facts.usgaap.OperatingIncomeLoss != null
+                    && root.facts.usgaap.OperatingIncomeLoss.units.USD != null)
+                    || (root.facts.usgaap.IncomeLossFromContinuingOperations != null
+                        && root.facts.usgaap.IncomeLossFromContinuingOperations.units.USD != null)))
         {
             var cik = root.cik.ToString();
-            var commonSharesOustanding = new List<Share>();
-            if (root.facts.dei.EntityCommonStockSharesOutstanding != null)
+            if (!db.Companies.Any(c => c.CIK == cik))
             {
-                commonSharesOustanding = root.facts.dei.EntityCommonStockSharesOutstanding.units.shares;
-            }
+                // Data to calculate enterprise value.
+                decimal? marketCapitalization = default;
+                decimal? cashAndCashEquivalents = default;
+                decimal? totalDebt = default;
 
-            db.Add(new Company
-            {
-                CIK = cik,
-                CompanyName = root.entityName,
-                CommonSharesOutstanding = commonSharesOustanding
-                    .Select(c => new CommonSharesOutstanding
+                // Data needed to calculate return on assets.
+                decimal? assetsCurrent = default;
+                decimal? netPropertyPlantAndEquipment = default;
+                decimal? operatingIncome = default;
+
+                var lastMarketCapitalization = root.facts.dei.EntityPublicFloat.units.USD
+                    .OrderByDescending(c => c.filed)
+                    .FirstOrDefault();
+
+                // Frame holds the year and quarter filing info.
+                var filed = "";
+                if (lastMarketCapitalization != null)
+                {
+                    filed = lastMarketCapitalization.filed;
+                    marketCapitalization = lastMarketCapitalization.val;
+                }
+
+                var lastAssetsCurrent = root.facts.usgaap.AssetsCurrent.units.USD
+                    .OrderByDescending(c => c.filed)
+                    .FirstOrDefault();
+
+                if (lastAssetsCurrent != null && lastAssetsCurrent.filed == filed)
+                {
+                    assetsCurrent = lastAssetsCurrent.val;
+                }
+
+                var lastCashAndCashEquivalents = root.facts.usgaap.CashAndCashEquivalentsAtCarryingValue.units.USD
+                    .OrderByDescending(c => c.filed)
+                    .FirstOrDefault();
+
+                if (lastCashAndCashEquivalents != null && lastCashAndCashEquivalents.filed == filed)
+                {
+                    cashAndCashEquivalents = lastCashAndCashEquivalents.val;
+                }
+
+                var lastPropertyPlantAndEquipment = root.facts.usgaap.PropertyPlantAndEquipmentNet.units.USD
+                    .OrderByDescending(c => c.filed)
+                    .FirstOrDefault();
+
+                if (lastPropertyPlantAndEquipment != null && lastPropertyPlantAndEquipment.filed == filed)
+                {
+                    netPropertyPlantAndEquipment = lastCashAndCashEquivalents.val;
+                }
+
+                var lastDebt = root.facts.usgaap.LongTermDebt != null
+                    && root.facts.usgaap.LongTermDebt.units.USD != null
+                    ? root.facts.usgaap.LongTermDebt.units.USD
+                        .OrderByDescending(c => c.filed)
+                        .FirstOrDefault()
+                    : root.facts.usgaap.LongTermDebtAndCapitalLeaseObligations.units.USD
+                        .OrderByDescending(c => c.filed)
+                        .FirstOrDefault();
+
+                if (lastDebt != null && lastDebt.filed == filed)
+                {
+                    totalDebt = lastDebt.val;
+                }
+
+                var lastOperatingIncome = root.facts.usgaap.OperatingIncomeLoss != null
+                    && root.facts.usgaap.OperatingIncomeLoss.units.USD != null
+                    ? root.facts.usgaap.OperatingIncomeLoss.units.USD
+                        .OrderByDescending(c => c.filed)
+                        .FirstOrDefault()
+                    : root.facts.usgaap.IncomeLossFromContinuingOperations.units.USD
+                        .OrderByDescending(c => c.filed)
+                        .FirstOrDefault();
+
+                if (lastOperatingIncome != null && lastOperatingIncome.filed == filed)
+                {
+                    operatingIncome = lastOperatingIncome.val;
+                }
+
+                if (marketCapitalization.HasValue && cashAndCashEquivalents.HasValue && totalDebt.HasValue && assetsCurrent.HasValue && netPropertyPlantAndEquipment.HasValue && operatingIncome.HasValue)
+                {
+                    var enterpriseValue = marketCapitalization + totalDebt - cashAndCashEquivalents;
+                    var employedCapital = assetsCurrent + netPropertyPlantAndEquipment;
+                    var company = new Company
                     {
-                        End = DateTime.Parse(c.end),
-                        FiscalYear = c.fy.Value,
-                        FiscalPart = c.fp,
-                        Form = c.form,
-                        FileDate = DateTime.Parse(c.filed)
-                    })
-                    .ToList()
-            });
+                        CIK = cik,
+                        CompanyName = root.entityName,
+                        LastMarketCapitalization = marketCapitalization.Value,
+                        LastTotalDebt = totalDebt.Value,
+                        LastCashAndCashEquivalents = cashAndCashEquivalents.Value,
+                        LastNetCurrentAssets = assetsCurrent.Value,
+                        LastNetPropertyPlantAndEquipment = netPropertyPlantAndEquipment.Value,
+                        LastOperatingIncome = operatingIncome.Value,
+                        LastEnterpriseValue = enterpriseValue.Value,
+                        LastEmployedCapital = employedCapital.Value,
+                        LastOperatingIncomeToEnterpriseValue = (float)(operatingIncome / enterpriseValue),
+                        LastReturnOnAssets = (float)(operatingIncome / employedCapital),
+                        LastFilingDate = DateTime.Parse(lastMarketCapitalization.filed)
+                    };
 
-            db.SaveChanges();
+                    db.Add(company);
+                    db.SaveChanges();
 
-            stopwatch.Stop();
+                    Console.WriteLine($"{stopwatch.Elapsed.TotalMilliseconds} ms\t\tImported {companyData}.");
 
-            Console.WriteLine($"{stopwatch.Elapsed.TotalMilliseconds} ms\t\tImported {companyData}.");
+                    currInBatch++;
+                    imported++;
 
-            currInBatch++;
+                    if (currInBatch % batch == 0)
+                    {
+                        using StreamReader configReader = new("appsettings.json");
+                        jsonString = configReader.ReadToEnd();
+                        var appSettings = JsonSerializer.Deserialize<AppSettings>(jsonString);
+                        quit = !string.IsNullOrEmpty(appSettings.Settings.SecImporterForceQuit) && appSettings.Settings.SecImporterForceQuit.Equals("yes", StringComparison.OrdinalIgnoreCase);
+                    }
 
-            if (currInBatch % batch == 0)
-            {
-                using StreamReader configReader = new("config.json");
-                jsonString = configReader.ReadToEnd();
-                var config = JsonSerializer.Deserialize<Config>(jsonString);
-                stop = !string.IsNullOrEmpty(config.Stop) && config.Stop.Equals("yes", StringComparison.OrdinalIgnoreCase);
-            }
-
-            if (currInBatch == batch)
-            {
-                currInBatch = 0;
+                    if (currInBatch == batch)
+                    {
+                        currInBatch = 0;
+                    }
+                }
             }
         }
 
+        stopwatch.Stop();
+
         curr++;
     }
-    while (!stop && curr < companyFiles.Length);
+    while (!quit && curr < companyFiles.Length);
 
-    Console.WriteLine($"\n...Went through {curr} files (batch of {batch})...");
+    total.Stop();
+
+    Console.WriteLine($"{total.ElapsedMilliseconds} ms\t\tWent through {curr} files (batch of {batch}) and importerd {imported} files to the database...");
+    Console.WriteLine("Press any key to quit.");
     Console.ReadLine();
 }

@@ -1,10 +1,11 @@
 ﻿namespace Shared.Models
 {
-    public class CommonSharesOutstanding
+    public class OperatingIncome
     {
         public int Id { get; set; }
+        public DateTime? Start { get; set; }
         public DateTime End { get; set; }
-        public double Value { get; set; }
+        public decimal Value { get; set; }
         public int? FiscalYear { get; set; }
         public string FiscalPart { get; set; } = "";
         public string Form { get; set; } = "";

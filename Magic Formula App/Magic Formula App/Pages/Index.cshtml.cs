@@ -1,6 +1,12 @@
 using Magic_Formula_App.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Net.Http.Headers;
+using Shared;
+using Shared.Models;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Net.Http;
 using System.Text.Json;
 
 namespace Magic_Formula_App.Pages
@@ -10,36 +16,77 @@ namespace Magic_Formula_App.Pages
         private readonly ILogger<IndexModel> _logger;
 
         [BindProperty(SupportsGet = true)]
-        public int? MarketCapitalization { get; set; }
+        public decimal MinimumMarketCapitalization { get; set; } = 25;
 
         [BindProperty(SupportsGet = true)]
-        public int? ReturnOnAssets { get; set; }
+        [Range(0, 100)]
+        public int MinimumOperatingIncomeToEnterpriseValue { get; set; } = 20;
 
         [BindProperty(SupportsGet = true)]
-        public int? OperatingIncomeToEnterpriseValue { get; set; }
+        [Range(0, 100)]
+        public int MinimumReturnOnAssets { get; set; } = 20;
 
-        [BindProperty(SupportsGet = true)]
-        public string? Sector { get; set; }
+        public IList<ScreenItem> ScreenItems { get; set; } = new List<ScreenItem>();
 
-        [BindProperty(SupportsGet = true)]
-        public string? Country { get; set; }
+        private readonly CompanyData _companyData;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public IList<ScreenItem> ScreenItems { get; set; } = default!;
-
-        public IndexModel(ILogger<IndexModel> logger)
+        public IndexModel(ILogger<IndexModel> logger, IConfiguration configuration, IHttpClientFactory httpClientFactory)
         {
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
+
+            Settings settings = configuration.GetRequiredSection("Settings").Get<Settings>();
+            _companyData = settings.DatabaseProvider switch
+            {
+                DatabaseProvider.SqlServer => new SqlServerCompanyData(),
+                DatabaseProvider.Sqlite => new SqliteCompanyData(),
+                DatabaseProvider.Postgres => new PostgresCompanyData(),
+                _ => throw new Exception($"Unsupported database provider: {settings.DatabaseProvider}"),
+            };
         }
 
         public async Task OnGetAsync()
         {
-            var log = (MarketCapitalization.HasValue ? MarketCapitalization.ToString() : "\nNo market cap")
-                + $"\n{(ReturnOnAssets.HasValue ? ReturnOnAssets.ToString() : "No ROA")}"
-                + $"\n{(OperatingIncomeToEnterpriseValue.HasValue ? OperatingIncomeToEnterpriseValue.ToString() : "No Op Inc/EV")}"
-                + $"\n{(!string.IsNullOrEmpty(Sector) ? Sector : "No Sector")}"
-                + $"\n{(!string.IsNullOrEmpty(Country) ? Sector : "No Country")}";
+            // https://www.sec.gov/files/company_tickers_exchange.json
+            var httpClient = _httpClientFactory.CreateClient("SecCompanyTickers");
 
-            _logger.LogInformation(log);
+            var httpResponseMessage = await httpClient.GetAsync("files/company_tickers_exchange.json");
+            var tickerData = default(TickerData);
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                var jsonString = await httpResponseMessage.Content.ReadAsStringAsync();
+                tickerData = JsonSerializer.Deserialize<TickerData>(jsonString);
+            }
+
+            ScreenItems = _companyData.Companies
+                .Select(c => new ScreenItem
+                {
+                    CIK = c.CIK,
+                    CompanyName = c.CompanyName,
+                    MarketCapitalization = Math.Round(c.LastMarketCapitalization / 1_000_000, 2),
+                    EnterpriseValue = Math.Round(c.LastEnterpriseValue / 1_000_000, 2),
+                    OperatingIncome = Math.Round(c.LastOperatingIncome / 1_000_000, 2),
+                    OperatingIncomeToEnterpriseValue = c.LastOperatingIncomeToEnterpriseValue * 100,
+                    NetCurrentAssets = Math.Round(c.LastNetCurrentAssets / 1_000_000, 2),
+                    NetPropertyPlantAndEquipment = Math.Round(c.LastNetPropertyPlantAndEquipment / 1_000_000, 2),
+                    EmployedCapital = Math.Round(c.LastEmployedCapital / 1_000_000, 2),
+                    ReturnOnAssets = c.LastReturnOnAssets * 100,
+                    FilingDate = c.LastFilingDate
+                })
+                .Where(c => c.MarketCapitalization >= MinimumMarketCapitalization
+                    && c.OperatingIncomeToEnterpriseValue >= MinimumOperatingIncomeToEnterpriseValue
+                    && c.ReturnOnAssets >= MinimumReturnOnAssets)
+                .ToList();
+
+            var id = 1;
+            foreach (var screenItem in ScreenItems)
+            {
+                var ticker = tickerData.data.FirstOrDefault(y => y[0].ToString() == screenItem.CIK);
+                screenItem.Id = id++;
+                screenItem.Ticker = ticker != null ? ticker[2].ToString() : "";
+                screenItem.CompanyName = ticker != null ? ticker[1].ToString() : screenItem.CompanyName;
+            }
 
             await Task.CompletedTask;
         }

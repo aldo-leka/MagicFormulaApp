@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models
 {
-    public class CommonSharesOutstanding
+    public class CashAndCashEquivalents
     {
         public int Id { get; set; }
         public DateTime End { get; set; }
