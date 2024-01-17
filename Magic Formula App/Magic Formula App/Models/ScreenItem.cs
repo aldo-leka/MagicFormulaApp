@@ -19,21 +19,26 @@ namespace Magic_Formula_App.Models
         public decimal MarketCapitalization { get; set; }
 
         [Display(Name = "Enterprise Value (M)")]
+        [DataType(DataType.Currency)]
         public decimal EnterpriseValue { get; set; }
 
         [Display(Name = "Operating Income (M)")]
+        [DataType(DataType.Currency)]
         public decimal OperatingIncome { get; set; }
 
         [Display(Name = "Op. Income / Enterprise Value (%)")]
         public float OperatingIncomeToEnterpriseValue { get; set; }
 
         [Display(Name = "Current Assets (M)")]
+        [DataType(DataType.Currency)]
         public decimal NetCurrentAssets { get; set; }
 
         [Display(Name = "PPE (M)")]
+        [DataType(DataType.Currency)]
         public decimal NetPropertyPlantAndEquipment { get; set; }
 
         [Display(Name = "Employed Capital (M)")]
+        [DataType(DataType.Currency)]
         public decimal EmployedCapital { get; set; }
 
         [Display(Name = "ROA (%)")]
@@ -42,9 +47,5 @@ namespace Magic_Formula_App.Models
         [Display(Name = "Filed")]
         [DataType(DataType.Date)]
         public DateTime FilingDate { get; set; }
-
-        public string Sector { get; set; }
-
-        public string Country { get; set; }
     }
 }

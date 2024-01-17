@@ -62,12 +62,6 @@
                     @Html.DisplayNameFor(model => model.ScreenItems[0].ReturnOnAssets)
                 </th>
                 <th>
-                    @Html.DisplayNameFor(model => model.ScreenItems[0].Sector)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.ScreenItems[0].Country)
-                </th>
-                <th>
                     @Html.DisplayNameFor(model => model.ScreenItems[0].FilingDate)
                 </th>
             </tr>
@@ -108,12 +102,6 @@
                     </td>
                     <td>
                         @item.ReturnOnAssets.ToString("0.##\\%")
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Sector)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Country)
                     </td>
                     <td>
                         @Html.DisplayFor(modelItem => item.FilingDate)

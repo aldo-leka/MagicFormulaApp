@@ -1,12 +1,9 @@
 using Magic_Formula_App.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Net.Http.Headers;
 using Shared;
 using Shared.Models;
 using System.ComponentModel.DataAnnotations;
-using System.Net;
-using System.Net.Http;
 using System.Text.Json;
 
 namespace Magic_Formula_App.Pages
