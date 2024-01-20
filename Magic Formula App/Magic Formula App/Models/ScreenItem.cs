@@ -11,35 +11,29 @@ namespace Magic_Formula_App.Models
 
         public string Ticker { get; set; }
 
+        public string Exchange { get; set; }
+
         [Display(Name = "Name")]
         public string CompanyName { get; set; }
 
         [Display(Name = "Market Capitalization (M)")]
-        [DataType(DataType.Currency)]
+        [DisplayFormat(DataFormatString = "{0:N2}")]
         public decimal MarketCapitalization { get; set; }
 
         [Display(Name = "Enterprise Value (M)")]
-        [DataType(DataType.Currency)]
+        [DisplayFormat(DataFormatString = "{0:N2}")]
         public decimal EnterpriseValue { get; set; }
 
+        [Display(Name = "Employed Capital (M)")]
+        [DisplayFormat(DataFormatString = "{0:N2}")]
+        public decimal EmployedCapital { get; set; }
+
         [Display(Name = "Operating Income (M)")]
-        [DataType(DataType.Currency)]
+        [DisplayFormat(DataFormatString = "{0:N2}")]
         public decimal OperatingIncome { get; set; }
 
         [Display(Name = "Op. Income / Enterprise Value (%)")]
         public float OperatingIncomeToEnterpriseValue { get; set; }
-
-        [Display(Name = "Current Assets (M)")]
-        [DataType(DataType.Currency)]
-        public decimal NetCurrentAssets { get; set; }
-
-        [Display(Name = "PPE (M)")]
-        [DataType(DataType.Currency)]
-        public decimal NetPropertyPlantAndEquipment { get; set; }
-
-        [Display(Name = "Employed Capital (M)")]
-        [DataType(DataType.Currency)]
-        public decimal EmployedCapital { get; set; }
 
         [Display(Name = "ROA (%)")]
         public float ReturnOnAssets { get; set; }

@@ -8,48 +8,54 @@ namespace Shared.Models
 
         public string CIK { get; set; }
 
+        public string Ticker { get; set; }
+
+        public string Exchange { get; set; }
+
         public string CompanyName { get; set; }
 
         [Precision(19, 4)]
         public decimal LastMarketCapitalization { get; set; }
 
         [Precision(19, 4)]
-        public decimal LastTotalDebt { get; set; }
+        public decimal CashAndCashEquivalents { get; set; }
 
         [Precision(19, 4)]
-        public decimal LastCashAndCashEquivalents { get; set; }
+        public decimal CurrentAssets { get; set; }
 
         [Precision(19, 4)]
-        public decimal LastNetCurrentAssets { get; set; }
+        public decimal PropertyPlantAndEquipment { get; set; }
 
         [Precision(19, 4)]
-        public decimal LastNetPropertyPlantAndEquipment { get; set; }
+        public decimal Assets { get; set; }
 
         [Precision(19, 4)]
-        public decimal LastOperatingIncome { get; set; }
+        public decimal TotalDebt { get; set; }
 
         [Precision(19, 4)]
-        public decimal LastEnterpriseValue { get; set; }
+        public decimal Liabilities { get; set; }
 
         [Precision(19, 4)]
-        public decimal LastEmployedCapital { get; set; }
+        public decimal OperatingIncome { get; set; }
 
-        public float LastOperatingIncomeToEnterpriseValue { get; set; }
+        [Precision(19, 4)]
+        public decimal NetCurrentAssets { get; set; }
 
-        public float LastReturnOnAssets { get; set; }
+        [Precision(19, 4)]
+        public decimal TangibleAssets { get; set; }
+
+        [Precision(19, 4)]
+        public decimal EmployedCapital { get; set; }
+
+        [Precision(19, 4)]
+        public decimal EnterpriseValue { get; set; }
+
+        public float ReturnOnEmployedCapital { get; set; }
+
+        public float OperatingIncomeToEnterpriseValue { get; set; }
 
         public DateTime LastFilingDate { get; set; }
 
-        //public List<CommonSharesOutstanding> CommonSharesOutstanding { get; set; }
-        //public List<AssetsCurrent> AssetsCurrent { get; set; }
-        //public List<PropertyPlantAndEquipment> PropertyPlantAndEquipment { get; set; }
-        //public List<LiabilitiesCurrent> LiabilitiesCurrent { get; set; }
-        //public List<Liabilities> Liabilities { get; set; }
-        //public List<OperatingIncome> OperatingIncome { get; set; }
-        //public List<CashAndCashEquivalents> CashAndCashEquivalents { get; set; }
-        //public List<MarketCapitalization> MarketCapitalization { get; set; }
-        //public List<LiabilitiesAndStockholdersEquity> LiabilitiesAndStockholdersEquity { get; set; }
-        //public List<Assets> Assets { get; set; }
-        //public List<Debt> Debt { get; set; }
+        public DateTime? LastMarketCapitalizationDate { get; set; }
     }
 }

@@ -44,19 +44,13 @@
                     @Html.DisplayNameFor(model => model.ScreenItems[0].EnterpriseValue)
                 </th>
                 <th>
+                    @Html.DisplayNameFor(model => model.ScreenItems[0].EmployedCapital)
+                </th>
+                <th>
                     @Html.DisplayNameFor(model => model.ScreenItems[0].OperatingIncome)
                 </th>
                 <th>
                     @Html.DisplayNameFor(model => model.ScreenItems[0].OperatingIncomeToEnterpriseValue)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.ScreenItems[0].NetCurrentAssets)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.ScreenItems[0].NetPropertyPlantAndEquipment)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.ScreenItems[0].EmployedCapital)
                 </th>
                 <th>
                     @Html.DisplayNameFor(model => model.ScreenItems[0].ReturnOnAssets)
@@ -80,25 +74,19 @@
                         @Html.DisplayFor(modelItem => item.CompanyName)
                     </td>
                     <td>
-                        @Html.DisplayFor(modelItem => item.MarketCapitalization)
+                        $ @Html.DisplayFor(modelItem => item.MarketCapitalization)
                     </td>
                     <td>
-                        @Html.DisplayFor(modelItem => item.EnterpriseValue)
+                        $ @Html.DisplayFor(modelItem => item.EnterpriseValue)
                     </td>
                     <td>
-                        @Html.DisplayFor(modelItem => item.OperatingIncome)
+                        $ @Html.DisplayFor(modelItem => item.EmployedCapital)
+                    </td>
+                    <td>
+                        $ @Html.DisplayFor(modelItem => item.OperatingIncome)
                     </td>
                     <td>
                         @item.OperatingIncomeToEnterpriseValue.ToString("0.##\\%")
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.NetCurrentAssets)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.NetPropertyPlantAndEquipment)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.EmployedCapital)
                     </td>
                     <td>
                         @item.ReturnOnAssets.ToString("0.##\\%")
