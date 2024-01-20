@@ -35,11 +35,12 @@ namespace Magic_Formula_App.Models
         [Display(Name = "Op. Income / Enterprise Value (%)")]
         public float OperatingIncomeToEnterpriseValue { get; set; }
 
-        [Display(Name = "ROA (%)")]
+        [Display(Name = "Return on Employed Capital (%)")]
         public float ReturnOnAssets { get; set; }
 
         [Display(Name = "Filed")]
         [DataType(DataType.Date)]
+        [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}")]
         public DateTime FilingDate { get; set; }
     }
 }
