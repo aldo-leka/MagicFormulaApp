@@ -22,6 +22,12 @@
                     <td><input type="text" asp-for="MinimumOperatingIncomeToEnterpriseValue" /></td>
                     <td><input type="submit" value="Fetch Screen" class="btn btn-primary" /></td>
                 </tr>
+                <tr>
+                    <td><span asp-validation-for="MinimumMarketCapitalization" class="text-danger"></span></td>
+                    <td><span asp-validation-for="MinimumReturnOnEmployedCapital" class="text-danger"></span></td>
+                    <td><span asp-validation-for="MinimumOperatingIncomeToEnterpriseValue" class="text-danger"></span></td>
+                    <td></td>
+                </tr>
             </tbody>
         </table>
     </form>
