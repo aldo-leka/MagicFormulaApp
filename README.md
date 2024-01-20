@@ -20,4 +20,4 @@ The app itself will consume the data stored in the database and provide meaningf
 
 How last twelve months operating income is calculated according to [this website](https://www.wallstreetprep.com/knowledge/last-twelve-months-ltm/).
 
-![alt text](Magic Formula App/Images/Last-Twelve-Months-LTM-Formula.jpg)
+![alt text](Magic%20Formula%20App/Images/Last-Twelve-Months-LTM-Formula.jpg)
