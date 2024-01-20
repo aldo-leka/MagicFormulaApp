@@ -24,7 +24,7 @@ dotnet ef database update 0
 dotnet ef database update 0 --context PostgresCompanyData
 ```
 
-> For SQL Server Management Studio or other programs, use this string to open the server connection: (localdb)\MSSQLLocalDB
+For SQL Server Management Studio or other programs, use this string to open the server connection: **(localdb)\MSSQLLocalDB**
 
 
 # Useful commands
@@ -46,7 +46,8 @@ GO
 
 Get your free API key at the [Financial Modeling Prep website](https://site.financialmodelingprep.com/developer/docs/dashboard).
 
-How to select 
+How to select the Companies table in a readable form:
+
 ```
 SELECT TOP (1000) [Id]
       ,[CIK]
