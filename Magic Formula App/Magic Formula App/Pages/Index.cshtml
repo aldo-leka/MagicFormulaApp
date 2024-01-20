@@ -120,12 +120,18 @@
 <a asp-page="./Index"
    asp-route-sortOrder="@Model.CurrentSort"
    asp-route-pageIndex="@(Model.ScreenItems.PageIndex - 1)"
+   asp-route-minimumMarketCapitalization="@Model.MinimumMarketCapitalization"
+   asp-route-minimumOperatingIncomeToEnterpriseValue="@Model.MinimumOperatingIncomeToEnterpriseValue"
+   asp-route-minimumReturnOnEmployedCapital="@Model.MinimumReturnOnEmployedCapital"
    class="btn btn-primary @prevDisabled">
     Previous
 </a>
 <a asp-page="./Index"
    asp-route-sortOrder="@Model.CurrentSort"
    asp-route-pageIndex="@(Model.ScreenItems.PageIndex + 1)"
+   asp-route-minimumMarketCapitalization="@Model.MinimumMarketCapitalization"
+   asp-route-minimumOperatingIncomeToEnterpriseValue="@Model.MinimumOperatingIncomeToEnterpriseValue"
+   asp-route-minimumReturnOnEmployedCapital="@Model.MinimumReturnOnEmployedCapital"
    class="btn btn-primary @nextDisabled">
     Next
 </a>
