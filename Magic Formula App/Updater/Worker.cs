@@ -229,6 +229,11 @@ namespace Updater
                                         var lastOpIncome = item.facts.usgaap.OperatingIncomeLoss.units.USD[^1];
                                         var lastOpIncomeDate = DateTime.Parse(lastOpIncome.filed);
 
+                                        if (cik == "14177")
+                                        {
+
+                                        }
+
                                         // Do not consider operating income that's too old (before current year and last year).
                                         if (lastOpIncomeDate.Year >= DateTime.Now.Year - 1)
                                         {
@@ -240,9 +245,14 @@ namespace Updater
                                                 var lastYearlyData = item.facts.usgaap.OperatingIncomeLoss.units.USD.LastOrDefault(c => c.fp == "FY");
                                                 if (lastYearlyData != null)
                                                 {
-                                                    var lastQuarterYearToDateDataMonthAndDay = DateTime.Parse(lastQuarterYearToDateData.start).ToString("-MM-dd");
+                                                    var lastQuarterYearToDateDataStart = DateTime.Parse(lastQuarterYearToDateData.start).AddMonths(-12);
+                                                    var withinDays = 10;
                                                     var lastYearQuarterYearToDateData = item.facts.usgaap.OperatingIncomeLoss.units.USD
-                                                        .LastOrDefault(c => c.fp == lastOpIncome.fp && c.start != lastQuarterYearToDateData.start && c.start.EndsWith(lastQuarterYearToDateDataMonthAndDay) && c.frame == null);
+                                                        .LastOrDefault(c => c.fp == lastOpIncome.fp
+                                                            && c.start != lastQuarterYearToDateData.start
+                                                            && DateTime.Parse(c.start) > lastQuarterYearToDateDataStart.AddDays(-withinDays)
+                                                            && DateTime.Parse(c.start) < lastQuarterYearToDateDataStart.AddDays(withinDays)
+                                                            && c.frame == null);
 
                                                     if (lastQuarterYearToDateData != null && lastYearQuarterYearToDateData != null)
                                                     {

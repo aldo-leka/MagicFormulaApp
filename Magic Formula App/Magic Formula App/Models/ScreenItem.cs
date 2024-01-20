@@ -38,7 +38,7 @@ namespace Magic_Formula_App.Models
         [Display(Name = "Return on Employed Capital (%)")]
         public float ReturnOnAssets { get; set; }
 
-        [Display(Name = "Filed")]
+        [Display(Name = "Filed At")]
         [DataType(DataType.Date)]
         [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}")]
         public DateTime FilingDate { get; set; }

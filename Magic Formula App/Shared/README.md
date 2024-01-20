@@ -37,10 +37,12 @@ GO
 
 INSERT INTO [dbo].[Fmp]
            ([ApiKey],
-           [MinimumTimeinSecondsToUpdateMarketCapitalizations])
+           [MinimumTimeinSecondsToUpdateMarketCapitalizations],
+           [MaxRequestsPerDay])
      VALUES
            ('Enter-FMP-API-key-here',
-           86400)
+           86400,
+           250)
 GO
 ```
 

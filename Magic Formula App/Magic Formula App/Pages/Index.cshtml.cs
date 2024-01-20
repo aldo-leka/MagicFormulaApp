@@ -17,11 +17,11 @@ namespace Magic_Formula_App.Pages
 
         [BindProperty(SupportsGet = true)]
         [Range(0, 100)]
-        public int MinimumOperatingIncomeToEnterpriseValue { get; set; } = 15;
+        public int MinimumOperatingIncomeToEnterpriseValue { get; set; } = 18;
 
         [BindProperty(SupportsGet = true)]
         [Range(0, 100)]
-        public int MinimumReturnOnEmployedCapital { get; set; } = 15;
+        public int MinimumReturnOnEmployedCapital { get; set; } = 18;
 
         public PaginatedList<ScreenItem> ScreenItems { get; set; }
 
@@ -42,27 +42,15 @@ namespace Magic_Formula_App.Pages
                     && c.OperatingIncomeToEnterpriseValue >= MinimumOperatingIncomeToEnterpriseValue / 100f
                     && c.ReturnOnEmployedCapital >= MinimumReturnOnEmployedCapital / 100f);
 
-            switch (sortOrder)
+            companies = sortOrder switch
             {
-                case "MarketCapitalization_desc":
-                    companies = companies.OrderByDescending(c => c.LastMarketCapitalization);
-                    break;
-                case "OperatingIncomeToEnterpriseValue":
-                    companies = companies.OrderBy(c => c.OperatingIncomeToEnterpriseValue);
-                    break;
-                case "OperatingIncomeToEnterpriseValue_desc":
-                    companies = companies.OrderByDescending(c => c.OperatingIncomeToEnterpriseValue);
-                    break;
-                case "ReturnOnAssets":
-                    companies = companies.OrderBy(c => c.ReturnOnEmployedCapital);
-                    break;
-                case "ReturnOnAssets_desc":
-                    companies = companies.OrderByDescending(c => c.ReturnOnEmployedCapital);
-                    break;
-                default:
-                    companies = companies.OrderBy(c => c.LastMarketCapitalization);
-                    break;
-            }
+                "MarketCapitalization_desc" => companies.OrderByDescending(c => c.LastMarketCapitalization),
+                "OperatingIncomeToEnterpriseValue" => companies.OrderBy(c => c.OperatingIncomeToEnterpriseValue),
+                "OperatingIncomeToEnterpriseValue_desc" => companies.OrderByDescending(c => c.OperatingIncomeToEnterpriseValue),
+                "ReturnOnAssets" => companies.OrderBy(c => c.ReturnOnEmployedCapital),
+                "ReturnOnAssets_desc" => companies.OrderByDescending(c => c.ReturnOnEmployedCapital),
+                _ => companies.OrderBy(c => c.LastMarketCapitalization),
+            };
 
             var screenItems = companies.Select(c => new ScreenItem
             {
