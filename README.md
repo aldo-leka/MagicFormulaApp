@@ -14,7 +14,7 @@ Importer and Updater are both background services apps that can run indefinitely
 
 The app itself will consume the data stored in the database and provide meaningful screens to find attractive stocks to invest into.
 
-[Useful information and commands for this project](Shared/README.md)
+[Useful information and commands for this project](Magic Formula App/Shared/README.md)
 
 # Other information
 
