@@ -1,5 +1,6 @@
 # Migrations Commands
 
+```
 dotnet ef migrations add InitialCreate
 
 dotnet ef migrations add InitialCreate --context PostgresCompanyData --output-dir Migrations/PostgresMigrations
@@ -13,42 +14,40 @@ dotnet ef migrations remove --context PostgresCompanyData
 dotnet ef database update
 
 dotnet ef database update --context PostgresCompanyData
+```
 
+## Unapply migrations:
 
-Unapply migrations:
-
+```
 dotnet ef database update 0
 
 dotnet ef database update 0 --context PostgresCompanyData
+```
 
-
-For SQL Server Management Studio or other programs, use this string to open the server connection: (localdb)\MSSQLLocalDB
+> For SQL Server Management Studio or other programs, use this string to open the server connection: (localdb)\MSSQLLocalDB
 
 
 # Useful commands
 
 Don't forget to set your FinancialModelingPrep API key and Max requests per day after creating the database:
 
+```
 USE [MagicFormulaApp]
 GO
 
 INSERT INTO [dbo].[Fmp]
-           ([ApiKey]
-           ,[MaxRequestsPerDay]
-           ,[RequestsToday],
+           ([ApiKey],
            [MinimumTimeinSecondsToUpdateMarketCapitalizations])
      VALUES
-           ('API_key',
-           250,
-           0,
+           ('Enter-FMP-API-key-here',
            86400)
 GO
+```
 
+Get your free API key at the [Financial Modeling Prep website](https://site.financialmodelingprep.com/developer/docs/dashboard).
 
-Get your free API key at:
-https://site.financialmodelingprep.com/developer/docs/dashboard
-
-
+How to select 
+```
 SELECT TOP (1000) [Id]
       ,[CIK]
       ,[Ticker]
@@ -71,11 +70,4 @@ SELECT TOP (1000) [Id]
       ,[LastFilingDate]
       ,[LastMarketCapitalizationDate]
   FROM [MagicFormulaApp].[dbo].[Companies]
-
-
-# Other information
-
-How last twelve months operating income is calculated:
-![alt text](Images/Last-Twelve-Months-LTM-Formula.jpg)
-
-Link: https://www.wallstreetprep.com/knowledge/last-twelve-months-ltm/
+```

@@ -41,7 +41,7 @@ namespace Updater
                 var companyFactsFolder = new DirectoryInfo(_configuration["CompanyFactsFolder"]);
                 if (companyFactsFolder.Exists)
                 {
-                    var batch = 100;
+                    const int batch = 100;
 
                     _logger.LogInformation("Analyzing current batch: {currentBatch} of company files at {companyFactsFolder}.", _currentBatch, companyFactsFolder.FullName);
 
@@ -62,13 +62,16 @@ namespace Updater
                     var context = scope.ServiceProvider.GetRequiredService<CompanyData>();
                     var fmpConfig = context.Fmp.SingleOrDefault();
 
-                    var financialModelingPrepApiClient = FinancialModelingPrepApiClientFactory.CreateClient(new FinancialModelingPrepOptions
+                    IFinancialModelingPrepApiClient fmpApiClient = default;
+                    if (fmpConfig != null)
                     {
-                        ApiKey = fmpConfig.ApiKey
-                    });
+                        fmpApiClient = FinancialModelingPrepApiClientFactory.CreateClient(new FinancialModelingPrepOptions
+                        {
+                            ApiKey = fmpConfig.ApiKey
+                        });
+                    }
 
                     List<Task<ApiResponse<QuoteResponse>>> _fmpTasks = [];
-                    var fmpMaxRequestsPerDay = _configuration.GetValue<int>("Fmp:MaxRequestsPerDay");
 
                     foreach (var item in items)
                     {
@@ -292,7 +295,7 @@ namespace Updater
 
                                     if (fmpConfig != null && (fmpConfig.LastDay == null || fmpConfig.LastDay < DateTime.Today))
                                     {
-                                        if (_fmpCalls < fmpMaxRequestsPerDay)
+                                        if (_fmpCalls < fmpConfig.MaxRequestsPerDay)
                                         {
                                             if (_currentBatch >= fmpConfig.LastBatch
                                                 && operatingIncome.filed != null
@@ -300,7 +303,7 @@ namespace Updater
                                                 && (company.LastMarketCapitalizationDate == null
                                                 || company.LastMarketCapitalizationDate != null && company.LastMarketCapitalizationDate.Value.AddSeconds(fmpConfig.MinimumTimeinSecondsToUpdateMarketCapitalizations) < DateTime.Now))
                                             {
-                                                _fmpTasks.Add(financialModelingPrepApiClient.CompanyValuation.GetQuoteAsync(ticker));
+                                                _fmpTasks.Add(fmpApiClient.CompanyValuation.GetQuoteAsync(ticker));
                                                 _fmpCalls++;
                                             }
                                         }
