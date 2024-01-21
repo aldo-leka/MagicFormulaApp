@@ -2,7 +2,9 @@
 
 These are the configuration values that you can change.
 
+
 I suggest to leave them to what they are.
+
 
 ```
 {

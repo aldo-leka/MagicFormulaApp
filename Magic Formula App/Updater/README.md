@@ -2,8 +2,11 @@
 
 These are the configuration values that you need to set.
 
+
 I suggest to set ***CompanyFactsFolder*** to the **LocalData** folder on your system to not need administrator privileges.
+
 I suggest to leave ***BatchSize*** and ***DefaultConnection*** connection string to what it is.
+
 
 ```
 {

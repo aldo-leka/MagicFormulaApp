@@ -22,7 +22,7 @@ The app itself will consume the data stored in the database and provide meaningf
 
 [Useful information and commands for this project](Magic%20Formula%20App/Shared/README.md)
 
-## Other information
+### Other information
 
 How last twelve months operating income is calculated according to [this website](https://www.wallstreetprep.com/knowledge/last-twelve-months-ltm/).
 
