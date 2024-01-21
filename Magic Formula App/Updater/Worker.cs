@@ -13,7 +13,7 @@ namespace Updater
         private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
         private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
 
-        private int _currentBatch;
+        private int? _currentBatch;
         private int _fmpCalls;
         private TickerData _tickerData;
 
@@ -41,15 +41,16 @@ namespace Updater
                 var companyFactsFolder = new DirectoryInfo(_configuration["CompanyFactsFolder"]);
                 if (companyFactsFolder.Exists)
                 {
-                    const int batch = 100;
+                    var batchSize = _configuration.GetValue("BatchSize", 100);
+                    _currentBatch ??= 1;
 
                     _logger.LogInformation("Analyzing current batch: {currentBatch} of company files at {companyFactsFolder}.", _currentBatch, companyFactsFolder.FullName);
 
                     IReadOnlyList<FileInfo> files = companyFactsFolder.GetFiles("*.json");
                     List<FileInfo> filesToRead = files
                         .OrderBy(fi => fi.Name, StringComparer.OrdinalIgnoreCase)
-                        .Skip(batch * _currentBatch)
-                        .Take(batch)
+                        .Skip((_currentBatch.Value - 1) * batchSize)
+                        .Take(batchSize)
                         .ToList();
 
                     List<Task<Root>> tasks = filesToRead
@@ -71,7 +72,7 @@ namespace Updater
                         });
                     }
 
-                    List<Task<ApiResponse<QuoteResponse>>> _fmpTasks = [];
+                    List<Task<ApiResponse<QuoteResponse>>> fmpTasks = [];
 
                     foreach (var item in items)
                     {
@@ -309,17 +310,16 @@ namespace Updater
                                         {
                                             if (_currentBatch >= fmpConfig.LastBatch
                                                 && operatingIncome.filed != null
-                                                && DateTime.Parse(operatingIncome.filed).Year >= DateTime.Today.Year - 1
                                                 && (company.LastMarketCapitalizationDate == null
                                                 || company.LastMarketCapitalizationDate != null && company.LastMarketCapitalizationDate.Value.AddSeconds(fmpConfig.MinimumTimeinSecondsToUpdateMarketCapitalizations) < DateTime.Now))
                                             {
-                                                _fmpTasks.Add(fmpApiClient.CompanyValuation.GetQuoteAsync(ticker));
+                                                fmpTasks.Add(fmpApiClient.CompanyValuation.GetQuoteAsync(ticker));
                                                 _fmpCalls++;
                                             }
                                         }
                                         else
                                         {
-                                            fmpConfig.LastBatch = _currentBatch;
+                                            fmpConfig.LastBatch = _currentBatch.Value;
                                             fmpConfig.LastDay = DateTime.Today;
                                             _fmpCalls = 0;
                                         }
@@ -338,7 +338,7 @@ namespace Updater
 
                     _logger.LogInformation("Updating market capitalizations...");
 
-                    var fmpResults = await Task.WhenAll(_fmpTasks);
+                    var fmpResults = await Task.WhenAll(fmpTasks);
                     foreach (var response in fmpResults)
                     {
                         if (!response.HasError)
@@ -364,9 +364,9 @@ namespace Updater
                     }
 
                     _currentBatch++;
-                    if (batch * _currentBatch > files.Count)
+                    if ((_currentBatch - 1) * batchSize > files.Count)
                     {
-                        _currentBatch = 0;
+                        _currentBatch = 1;
                     }
                 }
             }

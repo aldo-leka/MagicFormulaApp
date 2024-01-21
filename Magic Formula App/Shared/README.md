@@ -1,4 +1,4 @@
-# Migrations Commands
+## Migrations Commands
 
 ```
 dotnet ef migrations add InitialCreate
@@ -16,7 +16,7 @@ dotnet ef database update
 dotnet ef database update --context PostgresCompanyData
 ```
 
-## Unapply migrations:
+### Unapply migrations:
 
 ```
 dotnet ef database update 0
@@ -27,7 +27,7 @@ dotnet ef database update 0 --context PostgresCompanyData
 For SQL Server Management Studio or other programs, use this string to open the server connection: **(localdb)\MSSQLLocalDB**
 
 
-# Useful commands
+## Useful commands
 
 Don't forget to set your FinancialModelingPrep API key and Max requests per day after creating the database:
 
