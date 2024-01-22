@@ -1,3 +1,5 @@
+![alt text](Magic%20Formula%20App/Images/app.png)
+
 **This project is built in three parts:**
 
 - **Importer**

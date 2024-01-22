@@ -120,7 +120,7 @@ namespace Updater
                                         }
                                     },
                                     {
-                                        "PropertyPlantAndEquipmentNet",
+                                        "PropertyPlantAndEquipment",
                                         new CompanyField
                                         {
                                             KeyDate = new Dictionary<string, DateTime?>() { { "PropertyPlantAndEquipment", default } },
@@ -187,7 +187,7 @@ namespace Updater
                                     // Get the "filed" date for each key in the document.
                                     if (field.Value.KeyDate != null)
                                         foreach (var keyDate in field.Value.KeyDate)
-                                            if (document.TryGetLastDate("filed", $"facts.usgaap.{keyDate.Key}.units.USD", out var date))
+                                            if (document.TryGetLastDate("filed", $"facts.us-gaap.{keyDate.Key}.units.USD", out var date))
                                             {
                                                 field.Value.KeyDate[keyDate.Key] = date;
                                                 if (field.Value.LastFilingDate == null || date > field.Value.LastFilingDate)
@@ -197,7 +197,7 @@ namespace Updater
                                     // If no date is found for the keys, try the backup keys.
                                     if (field.Value.LastFilingDate == null && field.Value.BackupKeyDate != null)
                                         foreach (var keyDate in field.Value.BackupKeyDate)
-                                            if (document.TryGetLastDate("filed", $"facts.usgaap.{keyDate.Key}.units.USD", out var date))
+                                            if (document.TryGetLastDate("filed", $"facts.us-gaap.{keyDate.Key}.units.USD", out var date))
                                             {
                                                 field.Value.BackupKeyDate[keyDate.Key] = date;
                                                 if (field.Value.LastFilingDate == null || date > field.Value.LastFilingDate)
@@ -217,7 +217,7 @@ namespace Updater
                                         if (field.Value.KeyDate != null)
                                             foreach (var keyDate in field.Value.KeyDate)
                                                 if (keyDate.Value == filingDate)
-                                                    if (document.TryGetLastDecimal("val", $"facts.usgaap.{keyDate.Key}.units.USD", out var value))
+                                                    if (document.TryGetLastDecimal("val", $"facts.us-gaap.{keyDate.Key}.units.USD", out var value))
                                                     {
                                                         if (field.Value.Value == default)
                                                             field.Value.Value = 0;
@@ -230,7 +230,7 @@ namespace Updater
                                         if (field.Value.Value == default && field.Value.BackupKeyDate != null)
                                             foreach (var keyDate in field.Value.BackupKeyDate)
                                                 if (keyDate.Value == filingDate)
-                                                    if (document.TryGetLastDecimal("val", $"facts.usgaap.{keyDate.Key}.units.USD", out var value))
+                                                    if (document.TryGetLastDecimal("val", $"facts.us-gaap.{keyDate.Key}.units.USD", out var value))
                                                     {
                                                         if (field.Value.Value == default)
                                                             field.Value.Value = 0;
@@ -240,7 +240,7 @@ namespace Updater
                                                     }
                                     }
 
-                                    if (document.FindProperty("facts.usgaap.OperatingIncomeLoss.units.USD", out var operatingIncomeElement))
+                                    if (document.FindProperty("facts.us-gaap.OperatingIncomeLoss.units.USD", out var operatingIncomeElement))
                                     {
                                         var operatingIncomes = operatingIncomeElement.EnumerateArray();
                                         if (operatingIncomes.Any())
@@ -250,65 +250,71 @@ namespace Updater
                                             var lastOpIncomeFp = lastOpIncome.GetValue("fp").GetString();
                                             var lastOpIncomeStart = lastOpIncome.GetValue("start").GetDateTime();
                                             var lastOpIncomeEnd = lastOpIncome.GetValue("end").GetDateTime();
-                                            var lastOpIncomeFrame = lastOpIncome.GetValue("frame").GetString();
 
                                             // Do not consider operating income that's too old (before current year and last year).
-                                            if (lastOpIncomeDate.Year >= DateTime.Now.Year - 1)
+                                            try
                                             {
-                                                var lastQuarterYearToDateData = operatingIncomes
-                                                    .LastOrDefault(c => c.GetValue("fp").GetString() == lastOpIncomeFp
-                                                        && c.GetValue("end").GetDateTime() == lastOpIncomeEnd
-                                                        && c.GetValue("frame").ValueKind == JsonValueKind.Undefined);
-
-                                                if (lastQuarterYearToDateData.ValueKind != JsonValueKind.Undefined)
+                                                if (lastOpIncomeDate.Year >= DateTime.Now.Year - 1)
                                                 {
-                                                    var lastYearlyData = operatingIncomes.LastOrDefault(c => c.GetValue("fp").GetString() == "FY");
-                                                    if (lastYearlyData.ValueKind != JsonValueKind.Undefined)
+                                                    var lastQuarterYearToDateData = operatingIncomes
+                                                        .LastOrDefault(c => c.GetValue("fp").GetString() == lastOpIncomeFp
+                                                            && c.GetValue("end").GetDateTime() == lastOpIncomeEnd
+                                                            && c.GetValue("frame").ValueKind == JsonValueKind.Undefined);
+
+                                                    if (lastQuarterYearToDateData.ValueKind != JsonValueKind.Undefined)
                                                     {
-                                                        var lastQuarterYearToDateDataStart = lastQuarterYearToDateData.GetValue("start").GetDateTime().AddMonths(-12);
-                                                        var withinDays = 10;
-                                                        var lastYearQuarterYearToDateData = operatingIncomes
-                                                            .LastOrDefault(c => c.GetValue("fp").GetString() == lastOpIncomeFp
-                                                                && c.GetValue("start").GetDateTime() != lastOpIncomeStart
-                                                                && c.GetValue("start").GetDateTime() > lastQuarterYearToDateDataStart.AddDays(-withinDays)
-                                                                && c.GetValue("start").GetDateTime() < lastQuarterYearToDateDataStart.AddDays(withinDays)
-                                                                && c.GetValue("frame").ValueKind == JsonValueKind.Undefined);
-
-                                                        if (lastYearQuarterYearToDateData.ValueKind != JsonValueKind.Undefined)
+                                                        var lastYearlyData = operatingIncomes.LastOrDefault(c => c.GetValue("fp").GetString() == "FY");
+                                                        if (lastYearlyData.ValueKind != JsonValueKind.Undefined)
                                                         {
-                                                            // Do the calculation:
-                                                            // last quarter up to date operating income
-                                                            // + last 10-K operating income
-                                                            // - last year's same quarter up to date operating income
-                                                            // = last twelve months operating income.
-                                                            fields["OperatingIncome"].Value = lastQuarterYearToDateData.GetValue("val").GetDecimal()
-                                                                + lastYearlyData.GetValue("val").GetDecimal()
-                                                                - lastYearQuarterYearToDateData.GetValue("val").GetDecimal();
+                                                            var lastQuarterYearToDateDataStart = lastQuarterYearToDateData.GetValue("start").GetDateTime().AddMonths(-12);
+                                                            var withinDays = 10;
+                                                            var lastYearQuarterYearToDateData = operatingIncomes
+                                                                .LastOrDefault(c => c.GetValue("fp").GetString() == lastOpIncomeFp
+                                                                    && c.GetValue("start").GetDateTime() != lastOpIncomeStart
+                                                                    && c.GetValue("start").GetDateTime() > lastQuarterYearToDateDataStart.AddDays(-withinDays)
+                                                                    && c.GetValue("start").GetDateTime() < lastQuarterYearToDateDataStart.AddDays(withinDays)
+                                                                    && c.GetValue("frame").ValueKind == JsonValueKind.Undefined);
 
-                                                            fields["OperatingIncome"].LastFilingDate = lastQuarterYearToDateData.GetValue("filed").GetDateTime();
+                                                            if (lastYearQuarterYearToDateData.ValueKind != JsonValueKind.Undefined)
+                                                            {
+                                                                // Do the calculation:
+                                                                // last quarter up to date operating income
+                                                                // + last 10-K operating income
+                                                                // - last year's same quarter up to date operating income
+                                                                // = last twelve months operating income.
+                                                                fields["OperatingIncome"].Value = lastQuarterYearToDateData.GetValue("val").GetDecimal()
+                                                                    + lastYearlyData.GetValue("val").GetDecimal()
+                                                                    - lastYearQuarterYearToDateData.GetValue("val").GetDecimal();
 
+                                                                fields["OperatingIncome"].LastFilingDate = lastQuarterYearToDateData.GetValue("filed").GetDateTime();
+
+                                                            }
+                                                            else
+                                                            {
+                                                                fields["OperatingIncome"].Value = lastYearlyData.GetValue("val").GetDecimal();
+                                                                fields["OperatingIncome"].LastFilingDate = lastYearlyData.GetValue("filed").GetDateTime();
+                                                            }
                                                         }
                                                         else
+                                                        {
+                                                            fields["OperatingIncome"].Value = lastQuarterYearToDateData.GetValue("val").GetDecimal();
+                                                            fields["OperatingIncome"].LastFilingDate = lastQuarterYearToDateData.GetValue("filed").GetDateTime();
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        var lastYearlyData = operatingIncomes.LastOrDefault(c => c.GetValue("fp").GetString() == "FY");
+                                                        if (lastYearlyData.ValueKind != JsonValueKind.Undefined)
                                                         {
                                                             fields["OperatingIncome"].Value = lastYearlyData.GetValue("val").GetDecimal();
                                                             fields["OperatingIncome"].LastFilingDate = lastYearlyData.GetValue("filed").GetDateTime();
                                                         }
                                                     }
-                                                    else
-                                                    {
-                                                        fields["OperatingIncome"].Value = lastQuarterYearToDateData.GetValue("val").GetDecimal();
-                                                        fields["OperatingIncome"].LastFilingDate = lastQuarterYearToDateData.GetValue("filed").GetDateTime();
-                                                    }
                                                 }
-                                                else
-                                                {
-                                                    var lastYearlyData = operatingIncomes.LastOrDefault(c => c.GetValue("fp").GetString() == "FY");
-                                                    if (lastYearlyData.ValueKind != JsonValueKind.Undefined)
-                                                    {
-                                                        fields["OperatingIncome"].Value = lastYearlyData.GetValue("val").GetDecimal();
-                                                        fields["OperatingIncome"].LastFilingDate = lastYearlyData.GetValue("filed").GetDateTime();
-                                                    }
-                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                _logger.LogError("An error occurred when updating operating income for cik: {cik}\n{ex}", cikAsString, ex);
                                             }
                                         }
                                     }
@@ -316,7 +322,7 @@ namespace Updater
                                     var ticker = tickerData.EnumerateArray().FirstOrDefault(c => c[0].GetInt32() == cikAsInt).Deserialize<object[]>();
                                     var tickerSymbol = ticker[2].ToString();
                                     var tickerCompanyName = ticker[1].ToString();
-                                    var tickerExchange = ticker[3].ToString();
+                                    var tickerExchange = ticker[3]?.ToString();
                                     var company = context.Companies.FirstOrDefault(c => c.CIK == cikAsString);
                                     company ??= new Company
                                     {
