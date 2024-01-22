@@ -1,7 +1,7 @@
 ﻿@page
-@model IndexModel
+@model LowPriceToBookStocksModel
 @{
-    ViewData["Title"] = "Magic Formula App";
+    ViewData["Title"] = "Low Price To Book Stocks";
 }
 
 <div class="text-center">
@@ -10,22 +10,16 @@
             <thead>
                 <tr>
                     <th>Minimum Market Capitalization (M)</th>
-                    <th>Minimum Return on Employed Capital (%)</th>
-                    <th>Minimum Op. Income / Enterprise Value (%)</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td><input type="text" asp-for="MinimumMarketCapitalization" /></td>
-                    <td><input type="text" asp-for="MinimumReturnOnEmployedCapital" /></td>
-                    <td><input type="text" asp-for="MinimumOperatingIncomeToEnterpriseValue" /></td>
                     <td><input type="submit" value="Fetch Screen" class="btn btn-primary" /></td>
                 </tr>
                 <tr>
                     <td><span asp-validation-for="MinimumMarketCapitalization" class="text-danger"></span></td>
-                    <td><span asp-validation-for="MinimumReturnOnEmployedCapital" class="text-danger"></span></td>
-                    <td><span asp-validation-for="MinimumOperatingIncomeToEnterpriseValue" class="text-danger"></span></td>
                     <td></td>
                 </tr>
             </tbody>
@@ -44,27 +38,26 @@
                     @Html.DisplayNameFor(model => model.ScreenItems[0].CompanyName)
                 </th>
                 <th>
-                    <a asp-page="./Index" asp-route-sortOrder="@Model.MarketCapitalizationSort">
+                    <a asp-page="./LowPriceToBookStocks" asp-route-sortOrder="@Model.MarketCapitalizationSort">
                         @Html.DisplayNameFor(model => model.ScreenItems[0].MarketCapitalization)
                     </a>
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.ScreenItems[0].EnterpriseValue)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.ScreenItems[0].EmployedCapital)
                 </th>
                 <th>
                     @Html.DisplayNameFor(model => model.ScreenItems[0].OperatingIncome)
                 </th>
                 <th>
-                    <a asp-page="./Index" asp-route-sortOrder="@Model.OperatingIncomeToEnterpriseValueSort">
-                        @Html.DisplayNameFor(model => model.ScreenItems[0].OperatingIncomeToEnterpriseValue)
+                    <a asp-page="./LowPriceToBookStocks" asp-route-sortOrder="@Model.ReturnOnEmployedCapitalSort">
+                        @Html.DisplayNameFor(model => model.ScreenItems[0].ReturnOnEmployedCapital)
                     </a>
                 </th>
                 <th>
-                    <a asp-page="./Index" asp-route-sortOrder="@Model.ReturnOnEmployedCapitalSort">
-                        @Html.DisplayNameFor(model => model.ScreenItems[0].ReturnOnEmployedCapital)
+                    <a asp-page="./LowPriceToBookStocks" asp-route-sortOrder="@Model.PriceToTangibleBookSort">
+                        @Html.DisplayNameFor(model => model.ScreenItems[0].PriceToTangibleBook)
+                    </a>
+                </th>
+                <th>
+                    <a asp-page="./LowPriceToBookStocks" asp-route-sortOrder="@Model.PriceToTangibleBookSort">
+                        @Html.DisplayNameFor(model => model.ScreenItems[0].PriceToNetAssetsValue)
                     </a>
                 </th>
                 <th>
@@ -89,19 +82,16 @@
                         $ @Html.DisplayFor(modelItem => item.MarketCapitalization)
                     </td>
                     <td>
-                        $ @Html.DisplayFor(modelItem => item.EnterpriseValue)
-                    </td>
-                    <td>
-                        $ @Html.DisplayFor(modelItem => item.EmployedCapital)
-                    </td>
-                    <td>
                         $ @Html.DisplayFor(modelItem => item.OperatingIncome)
                     </td>
                     <td>
-                        @item.OperatingIncomeToEnterpriseValue.ToString("0.##\\%")
+                        @item.ReturnOnEmployedCapital.ToString("0.##\\%")
                     </td>
                     <td>
-                        @item.ReturnOnEmployedCapital.ToString("0.##\\%")
+                        @item.PriceToTangibleBook.ToString("0.##\\%")
+                    </td>
+                    <td>
+                        @item.PriceToNetAssetsValue.ToString("0.##\\%")
                     </td>
                     <td class="text-nowrap">
                         @Html.DisplayFor(modelItem => item.FilingDate)
@@ -117,21 +107,17 @@
     var nextDisabled = !Model.ScreenItems.HasNextPage ? "disabled" : "";
 }
 
-<a asp-page="./Index"
+<a asp-page="./LowPriceToBookStocks"
    asp-route-sortOrder="@Model.CurrentSort"
    asp-route-pageIndex="@(Model.ScreenItems.PageIndex - 1)"
    asp-route-minimumMarketCapitalization="@Model.MinimumMarketCapitalization"
-   asp-route-minimumOperatingIncomeToEnterpriseValue="@Model.MinimumOperatingIncomeToEnterpriseValue"
-   asp-route-minimumReturnOnEmployedCapital="@Model.MinimumReturnOnEmployedCapital"
    class="btn btn-primary @prevDisabled">
     Previous
 </a>
-<a asp-page="./Index"
+<a asp-page="./LowPriceToBookStocks"
    asp-route-sortOrder="@Model.CurrentSort"
    asp-route-pageIndex="@(Model.ScreenItems.PageIndex + 1)"
    asp-route-minimumMarketCapitalization="@Model.MinimumMarketCapitalization"
-   asp-route-minimumOperatingIncomeToEnterpriseValue="@Model.MinimumOperatingIncomeToEnterpriseValue"
-   asp-route-minimumReturnOnEmployedCapital="@Model.MinimumReturnOnEmployedCapital"
    class="btn btn-primary @nextDisabled">
     Next
 </a>

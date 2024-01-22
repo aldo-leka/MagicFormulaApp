@@ -1,4 +1,4 @@
-**This project is built in three parts.**
+**This project is built in three parts:**
 
 - **Importer**
 

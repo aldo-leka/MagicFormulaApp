@@ -36,7 +36,13 @@ namespace Magic_Formula_App.Models
         public float OperatingIncomeToEnterpriseValue { get; set; }
 
         [Display(Name = "Return on Employed Capital (%)")]
-        public float ReturnOnAssets { get; set; }
+        public float ReturnOnEmployedCapital { get; set; }
+
+        [Display(Name = "Market Capitalization / Tangible Book (%)")]
+        public float PriceToTangibleBook { get; set; }
+
+        [Display(Name = "Market Capitalization / Net Asset Value (%)")]
+        public float PriceToNetAssetsValue { get; set; }
 
         [Display(Name = "Filed At")]
         [DataType(DataType.Date)]

@@ -15,13 +15,13 @@ namespace Updater
 
         private int? _currentBatch;
         private int _fmpCalls;
-        private TickerData _tickerData;
+        private JsonElement _tickerData;
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (_tickerData == null)
+                if (_tickerData.ValueKind == JsonValueKind.Undefined)
                 {
                     _logger.LogInformation("No ticker data available. Fetching ticker data...");
                     var httpClient = _httpClientFactory.CreateClient("SecClient");
@@ -30,7 +30,8 @@ namespace Updater
                     if (httpResponseMessage.IsSuccessStatusCode)
                     {
                         var jsonString = await httpResponseMessage.Content.ReadAsStringAsync(stoppingToken);
-                        _tickerData = JsonSerializer.Deserialize<TickerData>(jsonString);
+                        using var document = JsonDocument.Parse(jsonString);
+                        _tickerData = document.RootElement.Clone();
                     }
                     else
                     {
@@ -53,11 +54,12 @@ namespace Updater
                         .Take(batchSize)
                         .ToList();
 
-                    List<Task<Root>> tasks = filesToRead
-                        .Select(fi => ReadJsonFileAsync<Root>(fi.FullName))
+                    // TODO Find a way to process these one by one to boost performance (watch out for memory leakage).
+                    List<Task<JsonElement>> companyDocumentTasks = filesToRead
+                        .Select(fi => ReadCompanyDocumentAsync(fi.FullName))
                         .ToList();
 
-                    var items = await Task.WhenAll(tasks);
+                    var companyDocuments = await Task.WhenAll(companyDocumentTasks);
 
                     using IServiceScope scope = _serviceScopeFactory.CreateScope();
                     var context = scope.ServiceProvider.GetRequiredService<CompanyData>();
@@ -74,13 +76,25 @@ namespace Updater
 
                     List<Task<ApiResponse<QuoteResponse>>> fmpTasks = [];
 
-                    foreach (var item in items)
+                    foreach (var document in companyDocuments)
                     {
-                        if (item.cik != null && item.entityName != null && item.facts.usgaap != null)
+                        if (document.TryGetProperty("cik", out var cik) && document.FindProperty("facts.us-gaap", out _))
                         {
-                            var cik = item.cik.ToString();
-                            var tickerData = _tickerData.data.FirstOrDefault(y => y[0].ToString() == cik);
-                            if (tickerData != null)
+                            var cikAsInt = default(int?);
+                            var cikAsString = default(string);
+                            switch (cik.ValueKind)
+                            {
+                                case JsonValueKind.String:
+                                    cikAsString = cik.GetString();
+                                    cikAsInt = int.Parse(cikAsString);
+                                break;
+                                case JsonValueKind.Number:
+                                    cikAsInt = cik.GetInt32();
+                                    cikAsString = cikAsInt.ToString();
+                                break;
+                            }
+
+                            if (_tickerData.FindProperty("data", out var tickerData) && tickerData.EnumerateArray().FirstOrDefault(c => c[0].GetInt32() == cikAsInt).ValueKind != JsonValueKind.Undefined)
                             {
                                 // sometimes these fields are null so no filed is available.
                                 // they should be considered with value 0 in these situations.
@@ -88,232 +102,250 @@ namespace Updater
                                 // if they're non-null, filed date matters because i want the latest financial data snapshot to have the same filing date.
                                 // If the date of any recent financial data is old, it simply means value should be treated as zero as it has had no update.
 
-                                var filedDate = default(DateTime?);
-                                var cashAndCashEquivalents = new USD { val = 0 };
-                                var currentAssets = new USD { val = 0 };
-                                var propertyPlantAndEquipment = new USD { val = 0 };
-                                var goodwill = new USD { val = 0 };
-                                var intangibleAssets = new USD { val = 0 };
-                                var trademarks = new USD { val = 0 }; 
-                                var assets = new USD { val = 0 };
-                                var longTermDebt = new USD { val = 0 };
-                                var currentDebt = new USD { val = 0 };
-                                var liabilities = new USD { val = 0 };
-                                var operatingIncome = new USD { val = 0 };
-                                
-                                bool cashAndCashEquivalentsAvailable = item.facts.usgaap.CashAndCashEquivalentsAtCarryingValue != null && item.facts.usgaap.CashAndCashEquivalentsAtCarryingValue.units.USD != null && item.facts.usgaap.CashAndCashEquivalentsAtCarryingValue.units.USD.Count > 0;
-                                bool cashAndCashEquivalentsBackupAvailable = item.facts.usgaap.Cash != null && item.facts.usgaap.Cash.units.USD != null && item.facts.usgaap.Cash.units.USD.Count > 0;
-                                bool currentAssetsAvailable = item.facts.usgaap.AssetsCurrent != null && item.facts.usgaap.AssetsCurrent.units.USD != null && item.facts.usgaap.AssetsCurrent.units.USD.Count > 0;
-                                bool propertyPlantAndEquipmentAvailable = item.facts.usgaap.PropertyPlantAndEquipmentNet != null && item.facts.usgaap.PropertyPlantAndEquipmentNet.units.USD != null && item.facts.usgaap.PropertyPlantAndEquipmentNet.units.USD.Count > 0;
-                                bool propertyPlantAndEquipmentBackupAvailable = item.facts.usgaap.PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization != null && item.facts.usgaap.PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization.units.USD != null && item.facts.usgaap.PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization.units.USD.Count > 0;
-                                bool goodwillAvailable = item.facts.usgaap.Goodwill != null && item.facts.usgaap.Goodwill.units.USD != null && item.facts.usgaap.Goodwill.units.USD.Count > 0;
-                                bool intangibleAssetsAvailable = item.facts.usgaap.FiniteLivedIntangibleAssetsNet != null && item.facts.usgaap.FiniteLivedIntangibleAssetsNet.units.USD != null && item.facts.usgaap.FiniteLivedIntangibleAssetsNet.units.USD.Count > 0;
-                                bool trademarksAvailable = item.facts.usgaap.IndefiniteLivedTrademarks != null && item.facts.usgaap.IndefiniteLivedTrademarks.units.USD != null && item.facts.usgaap.IndefiniteLivedTrademarks.units.USD.Count > 0;
-                                bool assetsAvailable = item.facts.usgaap.Assets != null && item.facts.usgaap.Assets.units.USD != null && item.facts.usgaap.Assets.units.USD.Count > 0;
-                                bool longTermDebtAvailable = item.facts.usgaap.LongTermDebt != null && item.facts.usgaap.LongTermDebt.units.USD != null && item.facts.usgaap.LongTermDebt.units.USD.Count > 0;
-                                bool longTermDebtBackupAvailable = item.facts.usgaap.LongTermDebtNoncurrent != null && item.facts.usgaap.LongTermDebtNoncurrent.units.USD != null && item.facts.usgaap.LongTermDebtNoncurrent.units.USD.Count > 0;
-                                bool longTermNotesPayableAvailable = item.facts.usgaap.LongTermNotesPayable != null && item.facts.usgaap.LongTermNotesPayable.units.USD != null && item.facts.usgaap.LongTermNotesPayable.units.USD.Count > 0;
-                                bool longTermLineOfCreditAvailable = item.facts.usgaap.LongTermLineOfCredit != null && item.facts.usgaap.LongTermLineOfCredit.units.USD != null && item.facts.usgaap.LongTermLineOfCredit.units.USD.Count > 0;
-                                bool currentDebtAvailable = item.facts.usgaap.LongTermDebtCurrent != null && item.facts.usgaap.LongTermDebtCurrent.units.USD != null && item.facts.usgaap.LongTermDebtCurrent.units.USD.Count > 0;
-                                bool currentDebtBackupAvailable = item.facts.usgaap.DebtCurrent != null && item.facts.usgaap.DebtCurrent.units.USD != null && item.facts.usgaap.DebtCurrent.units.USD.Count > 0;
-                                bool currentNotesPayableAvailable = item.facts.usgaap.NotesPayableCurrent != null && item.facts.usgaap.NotesPayableCurrent.units.USD != null && item.facts.usgaap.NotesPayableCurrent.units.USD.Count > 0;
-                                bool currentLineOfCreditAvailable = item.facts.usgaap.LinesOfCreditCurrent != null && item.facts.usgaap.LinesOfCreditCurrent.units.USD != null && item.facts.usgaap.LinesOfCreditCurrent.units.USD.Count > 0;
-                                bool liabilitiesAvailable = item.facts.usgaap.Liabilities != null && item.facts.usgaap.Liabilities.units.USD != null && item.facts.usgaap.Liabilities.units.USD.Count > 0;
-                                bool operatingIncomeAvailable = item.facts.usgaap.OperatingIncomeLoss != null && item.facts.usgaap.OperatingIncomeLoss.units.USD != null && item.facts.usgaap.OperatingIncomeLoss.units.USD.Count > 0;
-
-                                // What is the most recent filed date?
-
-                                if (cashAndCashEquivalentsAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.CashAndCashEquivalentsAtCarryingValue.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.CashAndCashEquivalentsAtCarryingValue.units.USD[^1].filed);
-                                else if (cashAndCashEquivalentsBackupAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.Cash.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.Cash.units.USD[^1].filed);
-
-                                if (currentAssetsAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.AssetsCurrent.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.AssetsCurrent.units.USD[^1].filed);
-
-                                if (propertyPlantAndEquipmentAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.PropertyPlantAndEquipmentNet.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.PropertyPlantAndEquipmentNet.units.USD[^1].filed);
-                                else if (propertyPlantAndEquipmentBackupAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization.units.USD[^1].filed);
-
-                                if (goodwillAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.Goodwill.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.Goodwill.units.USD[^1].filed);
-
-                                if (intangibleAssetsAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.FiniteLivedIntangibleAssetsNet.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.FiniteLivedIntangibleAssetsNet.units.USD[^1].filed);
-
-                                if (trademarksAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.IndefiniteLivedTrademarks.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.IndefiniteLivedTrademarks.units.USD[^1].filed);
-
-                                if (assetsAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.Assets.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.Assets.units.USD[^1].filed);
-
-                                if (longTermDebtAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.LongTermDebt.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.LongTermDebt.units.USD[^1].filed);
-                                else if (longTermDebtBackupAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.LongTermDebtNoncurrent.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.LongTermDebtNoncurrent.units.USD[^1].filed);
-                                else if (longTermNotesPayableAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.LongTermNotesPayable.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.LongTermNotesPayable.units.USD[^1].filed);
-                                else if (longTermLineOfCreditAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.LongTermLineOfCredit.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.LongTermLineOfCredit.units.USD[^1].filed);
-
-                                if (currentDebtAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.LongTermDebtCurrent.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.LongTermDebtCurrent.units.USD[^1].filed);
-                                else if (currentDebtBackupAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.DebtCurrent.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.DebtCurrent.units.USD[^1].filed);
-                                else if (currentNotesPayableAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.NotesPayableCurrent.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.NotesPayableCurrent.units.USD[^1].filed);
-                                else if (currentLineOfCreditAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.LinesOfCreditCurrent.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.LinesOfCreditCurrent.units.USD[^1].filed);
-
-                                if (liabilitiesAvailable && (filedDate == null || DateTime.Parse(item.facts.usgaap.Liabilities.units.USD[^1].filed) > filedDate))
-                                    filedDate = DateTime.Parse(item.facts.usgaap.Liabilities.units.USD[^1].filed);
-
-                                if (filedDate != null)
+                                var fields = new Dictionary<string, CompanyField>()
                                 {
-                                    if (cashAndCashEquivalentsAvailable && DateTime.Parse(item.facts.usgaap.CashAndCashEquivalentsAtCarryingValue.units.USD[^1].filed) == filedDate)
-                                        cashAndCashEquivalents.val = item.facts.usgaap.CashAndCashEquivalentsAtCarryingValue.units.USD[^1].val;
-                                    else if (cashAndCashEquivalentsBackupAvailable && DateTime.Parse(item.facts.usgaap.Cash.units.USD[^1].filed) == filedDate)
-                                        cashAndCashEquivalents.val = item.facts.usgaap.Cash.units.USD[^1].val;
-
-                                    if (currentAssetsAvailable && DateTime.Parse(item.facts.usgaap.AssetsCurrent.units.USD[^1].filed) == filedDate)
-                                        currentAssets.val = item.facts.usgaap.AssetsCurrent.units.USD[^1].val;
-
-                                    if (propertyPlantAndEquipmentAvailable && (DateTime.Parse(item.facts.usgaap.PropertyPlantAndEquipmentNet.units.USD[^1].filed) == filedDate))
-                                        propertyPlantAndEquipment.val = item.facts.usgaap.PropertyPlantAndEquipmentNet.units.USD[^1].val;
-                                    else if (propertyPlantAndEquipmentBackupAvailable && DateTime.Parse(item.facts.usgaap.PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization.units.USD[^1].filed) == filedDate)
-                                        propertyPlantAndEquipment.val = item.facts.usgaap.PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization.units.USD[^1].val;
-
-                                    if (goodwillAvailable && DateTime.Parse(item.facts.usgaap.Goodwill.units.USD[^1].filed) == filedDate)
-                                        goodwill.val = item.facts.usgaap.Goodwill.units.USD[^1].val;
-
-                                    if (intangibleAssetsAvailable && DateTime.Parse(item.facts.usgaap.FiniteLivedIntangibleAssetsNet.units.USD[^1].filed) == filedDate)
-                                        intangibleAssets.val = item.facts.usgaap.FiniteLivedIntangibleAssetsNet.units.USD[^1].val;
-
-                                    if (trademarksAvailable && DateTime.Parse(item.facts.usgaap.IndefiniteLivedTrademarks.units.USD[^1].filed) == filedDate)
-                                        trademarks.val = item.facts.usgaap.IndefiniteLivedTrademarks.units.USD[^1].val;
-
-                                    if (assetsAvailable && DateTime.Parse(item.facts.usgaap.Assets.units.USD[^1].filed) == filedDate)
-                                        assets.val = item.facts.usgaap.Assets.units.USD[^1].val;
-
-                                    if (longTermDebtAvailable && DateTime.Parse(item.facts.usgaap.LongTermDebt.units.USD[^1].filed) == filedDate)
-                                        longTermDebt.val = item.facts.usgaap.LongTermDebt.units.USD[^1].val;
-                                    else if (longTermDebtBackupAvailable && DateTime.Parse(item.facts.usgaap.LongTermDebtNoncurrent.units.USD[^1].filed) == filedDate)
-                                        longTermDebt.val = item.facts.usgaap.LongTermDebtNoncurrent.units.USD[^1].val;
-                                    else
                                     {
-                                        if (longTermNotesPayableAvailable && DateTime.Parse(item.facts.usgaap.LongTermNotesPayable.units.USD[^1].filed) == filedDate)
-                                            longTermDebt.val += item.facts.usgaap.LongTermNotesPayable.units.USD[^1].val;
-
-                                        if (longTermLineOfCreditAvailable && DateTime.Parse(item.facts.usgaap.LongTermLineOfCredit.units.USD[^1].filed) == filedDate)
-                                            longTermDebt.val += item.facts.usgaap.LongTermLineOfCredit.units.USD[^1].val;
-                                    }
-
-                                    if (currentDebtAvailable && DateTime.Parse(item.facts.usgaap.LongTermDebtCurrent.units.USD[^1].filed) == filedDate)
-                                        currentDebt.val = item.facts.usgaap.LongTermDebtCurrent.units.USD[^1].val;
-                                    else if (currentDebtBackupAvailable && DateTime.Parse(item.facts.usgaap.DebtCurrent.units.USD[^1].filed) == filedDate)
-                                        currentDebt.val = item.facts.usgaap.DebtCurrent.units.USD[^1].val;
-                                    else
-                                    {
-                                        if (currentNotesPayableAvailable && DateTime.Parse(item.facts.usgaap.NotesPayableCurrent.units.USD[^1].filed) == filedDate)
-                                            currentDebt.val += item.facts.usgaap.NotesPayableCurrent.units.USD[^1].val;
-
-                                        if (currentLineOfCreditAvailable && DateTime.Parse(item.facts.usgaap.LinesOfCreditCurrent.units.USD[^1].filed) == filedDate)
-                                            currentDebt.val += item.facts.usgaap.LinesOfCreditCurrent.units.USD[^1].val;
-                                    }
-
-                                    if (liabilitiesAvailable && DateTime.Parse(item.facts.usgaap.Liabilities.units.USD[^1].filed) == filedDate)
-                                        liabilities.val = item.facts.usgaap.Liabilities.units.USD[^1].val;
-
-                                    if (operatingIncomeAvailable)
-                                    {
-                                        var lastOpIncome = item.facts.usgaap.OperatingIncomeLoss.units.USD[^1];
-                                        var lastOpIncomeDate = DateTime.Parse(lastOpIncome.filed);
-
-                                        if (cik == "14177")
+                                        "CashAndCashEquivalents",
+                                        new CompanyField
                                         {
-
+                                            KeyDate = new Dictionary<string, DateTime?>() { { "CashAndCashEquivalentsAtCarryingValue", default } },
+                                            BackupKeyDate = new Dictionary<string, DateTime?>() { { "Cash", default } }
                                         }
-
-                                        // Do not consider operating income that's too old (before current year and last year).
-                                        if (lastOpIncomeDate.Year >= DateTime.Now.Year - 1)
+                                    },
+                                    {
+                                        "CurrentAssets",
+                                        new CompanyField
                                         {
-                                            var lastQuarterYearToDateData = item.facts.usgaap.OperatingIncomeLoss.units.USD
-                                                .LastOrDefault(c => c.fp == lastOpIncome.fp && c.end == lastOpIncome.end && c.frame == null);
+                                            KeyDate = new Dictionary<string, DateTime?>() { { "AssetsCurrent", default } }
+                                        }
+                                    },
+                                    {
+                                        "PropertyPlantAndEquipmentNet",
+                                        new CompanyField
+                                        {
+                                            KeyDate = new Dictionary<string, DateTime?>() { { "PropertyPlantAndEquipment", default } },
+                                            BackupKeyDate = new Dictionary<string, DateTime?>() { { "PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization", default } }
+                                        }
+                                    },
+                                    {
+                                        "IntangibleAssets",
+                                        new CompanyField
+                                        {
+                                            KeyDate = new Dictionary<string, DateTime?>() { { "PropertyPlantAndEquipment", default }, { "FiniteLivedIntangibleAssetsNet", default }, { "IndefiniteLivedTrademarks", default } }
+                                        }
+                                    },
+                                    {
+                                        "Assets",
+                                        new CompanyField
+                                        {
+                                            KeyDate = new Dictionary<string, DateTime?>() { { "Assets", default } }
+                                        }
+                                    },
+                                    {
+                                        "Debt",
+                                        new CompanyField
+                                        {
+                                            KeyDate = new Dictionary<string, DateTime?>() {
+                                                { "LongTermDebt", default },
+                                                { "LongTermDebtNoncurrent", default } ,
+                                                { "LongTermNotesPayable", default } ,
+                                                { "LongTermLineOfCredit", default } ,
+                                                { "LongTermDebtCurrent", default } ,
+                                                { "DebtCurrent", default },
+                                                { "NotesPayableCurrent", default },
+                                                { "LinesOfCreditCurrent", default }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "Liabilities",
+                                        new CompanyField
+                                        {
+                                            KeyDate = new Dictionary<string, DateTime?>() { { "Liabilities", default } },
+                                            BackupKeyDate = new Dictionary<string, DateTime?>() {
+                                                { "LongTermDebt", default },
+                                                { "LongTermDebtNoncurrent", default } ,
+                                                { "LongTermNotesPayable", default } ,
+                                                { "LongTermLineOfCredit", default } ,
+                                                { "LongTermDebtCurrent", default } ,
+                                                { "DebtCurrent", default },
+                                                { "NotesPayableCurrent", default },
+                                                { "LinesOfCreditCurrent", default }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "OperatingIncome",
+                                        new CompanyField()
+                                    }
+                                };
 
-                                            if (lastQuarterYearToDateData != null)
+                                // What is the most recent filing date?
+                                var filingDate = default(DateTime?);
+                                foreach (var field in fields)
+                                {
+                                    // Get the "filed" date for each key in the document.
+                                    if (field.Value.KeyDate != null)
+                                        foreach (var keyDate in field.Value.KeyDate)
+                                            if (document.TryGetLastDate("filed", $"facts.usgaap.{keyDate.Key}.units.USD", out var date))
                                             {
-                                                var lastYearlyData = item.facts.usgaap.OperatingIncomeLoss.units.USD.LastOrDefault(c => c.fp == "FY");
-                                                if (lastYearlyData != null)
-                                                {
-                                                    var lastQuarterYearToDateDataStart = DateTime.Parse(lastQuarterYearToDateData.start).AddMonths(-12);
-                                                    var withinDays = 10;
-                                                    var lastYearQuarterYearToDateData = item.facts.usgaap.OperatingIncomeLoss.units.USD
-                                                        .LastOrDefault(c => c.fp == lastOpIncome.fp
-                                                            && c.start != lastQuarterYearToDateData.start
-                                                            && DateTime.Parse(c.start) > lastQuarterYearToDateDataStart.AddDays(-withinDays)
-                                                            && DateTime.Parse(c.start) < lastQuarterYearToDateDataStart.AddDays(withinDays)
-                                                            && c.frame == null);
+                                                field.Value.KeyDate[keyDate.Key] = date;
+                                                if (field.Value.LastFilingDate == null || date > field.Value.LastFilingDate)
+                                                    field.Value.LastFilingDate = date;
+                                            }
 
-                                                    if (lastQuarterYearToDateData != null && lastYearQuarterYearToDateData != null)
+                                    // If no date is found for the keys, try the backup keys.
+                                    if (field.Value.LastFilingDate == null && field.Value.BackupKeyDate != null)
+                                        foreach (var keyDate in field.Value.BackupKeyDate)
+                                            if (document.TryGetLastDate("filed", $"facts.usgaap.{keyDate.Key}.units.USD", out var date))
+                                            {
+                                                field.Value.BackupKeyDate[keyDate.Key] = date;
+                                                if (field.Value.LastFilingDate == null || date > field.Value.LastFilingDate)
+                                                    field.Value.LastFilingDate = date;
+                                            }
+
+                                    // If the most recent filing date for this key is newer than for the other keys, update filing date.
+                                    if (filingDate == null || (field.Value.LastFilingDate != null && field.Value.LastFilingDate > filingDate))
+                                        filingDate = field.Value.LastFilingDate;
+                                }
+
+                                if (filingDate != null)
+                                {
+                                    // Add all keys values for each field of interest, if the filing date matches the most recent one.
+                                    foreach (var field in fields)
+                                    {
+                                        if (field.Value.KeyDate != null)
+                                            foreach (var keyDate in field.Value.KeyDate)
+                                                if (keyDate.Value == filingDate)
+                                                    if (document.TryGetLastDecimal("val", $"facts.usgaap.{keyDate.Key}.units.USD", out var value))
                                                     {
-                                                        // Do the calculation:
-                                                        // last quarter up to date operating income
-                                                        // + last 10-K operating income
-                                                        // - last year's same quarter up to date operating income
-                                                        // = last twelve months operating income.
-                                                        operatingIncome.val = lastQuarterYearToDateData.val + lastYearlyData.val - lastYearQuarterYearToDateData.val;
-                                                        operatingIncome.filed = lastQuarterYearToDateData.filed;
+                                                        if (field.Value.Value == default)
+                                                            field.Value.Value = 0;
+
+                                                        if (value.HasValue)
+                                                            field.Value.Value += value;
+                                                    }
+
+                                        // If value is still NULL, try the backup keys.
+                                        if (field.Value.Value == default && field.Value.BackupKeyDate != null)
+                                            foreach (var keyDate in field.Value.BackupKeyDate)
+                                                if (keyDate.Value == filingDate)
+                                                    if (document.TryGetLastDecimal("val", $"facts.usgaap.{keyDate.Key}.units.USD", out var value))
+                                                    {
+                                                        if (field.Value.Value == default)
+                                                            field.Value.Value = 0;
+
+                                                        if (value.HasValue)
+                                                            field.Value.Value += value;
+                                                    }
+                                    }
+
+                                    if (document.FindProperty("facts.usgaap.OperatingIncomeLoss.units.USD", out var operatingIncomeElement))
+                                    {
+                                        var operatingIncomes = operatingIncomeElement.EnumerateArray();
+                                        if (operatingIncomes.Any())
+                                        {
+                                            var lastOpIncome = operatingIncomes.Last();
+                                            var lastOpIncomeDate = lastOpIncome.GetValue("filed").GetDateTime();
+                                            var lastOpIncomeFp = lastOpIncome.GetValue("fp").GetString();
+                                            var lastOpIncomeStart = lastOpIncome.GetValue("start").GetDateTime();
+                                            var lastOpIncomeEnd = lastOpIncome.GetValue("end").GetDateTime();
+                                            var lastOpIncomeFrame = lastOpIncome.GetValue("frame").GetString();
+
+                                            // Do not consider operating income that's too old (before current year and last year).
+                                            if (lastOpIncomeDate.Year >= DateTime.Now.Year - 1)
+                                            {
+                                                var lastQuarterYearToDateData = operatingIncomes
+                                                    .LastOrDefault(c => c.GetValue("fp").GetString() == lastOpIncomeFp
+                                                        && c.GetValue("end").GetDateTime() == lastOpIncomeEnd
+                                                        && c.GetValue("frame").ValueKind == JsonValueKind.Undefined);
+
+                                                if (lastQuarterYearToDateData.ValueKind != JsonValueKind.Undefined)
+                                                {
+                                                    var lastYearlyData = operatingIncomes.LastOrDefault(c => c.GetValue("fp").GetString() == "FY");
+                                                    if (lastYearlyData.ValueKind != JsonValueKind.Undefined)
+                                                    {
+                                                        var lastQuarterYearToDateDataStart = lastQuarterYearToDateData.GetValue("start").GetDateTime().AddMonths(-12);
+                                                        var withinDays = 10;
+                                                        var lastYearQuarterYearToDateData = operatingIncomes
+                                                            .LastOrDefault(c => c.GetValue("fp").GetString() == lastOpIncomeFp
+                                                                && c.GetValue("start").GetDateTime() != lastOpIncomeStart
+                                                                && c.GetValue("start").GetDateTime() > lastQuarterYearToDateDataStart.AddDays(-withinDays)
+                                                                && c.GetValue("start").GetDateTime() < lastQuarterYearToDateDataStart.AddDays(withinDays)
+                                                                && c.GetValue("frame").ValueKind == JsonValueKind.Undefined);
+
+                                                        if (lastYearQuarterYearToDateData.ValueKind != JsonValueKind.Undefined)
+                                                        {
+                                                            // Do the calculation:
+                                                            // last quarter up to date operating income
+                                                            // + last 10-K operating income
+                                                            // - last year's same quarter up to date operating income
+                                                            // = last twelve months operating income.
+                                                            fields["OperatingIncome"].Value = lastQuarterYearToDateData.GetValue("val").GetDecimal()
+                                                                + lastYearlyData.GetValue("val").GetDecimal()
+                                                                - lastYearQuarterYearToDateData.GetValue("val").GetDecimal();
+
+                                                            fields["OperatingIncome"].LastFilingDate = lastQuarterYearToDateData.GetValue("filed").GetDateTime();
+
+                                                        }
+                                                        else
+                                                        {
+                                                            fields["OperatingIncome"].Value = lastYearlyData.GetValue("val").GetDecimal();
+                                                            fields["OperatingIncome"].LastFilingDate = lastYearlyData.GetValue("filed").GetDateTime();
+                                                        }
                                                     }
                                                     else
-                                                        operatingIncome = lastYearlyData;
+                                                    {
+                                                        fields["OperatingIncome"].Value = lastQuarterYearToDateData.GetValue("val").GetDecimal();
+                                                        fields["OperatingIncome"].LastFilingDate = lastQuarterYearToDateData.GetValue("filed").GetDateTime();
+                                                    }
                                                 }
                                                 else
-                                                    operatingIncome = lastQuarterYearToDateData;
-                                            }
-                                            else
-                                            {
-                                                var lastYearlyData = item.facts.usgaap.OperatingIncomeLoss.units.USD.Last(c => c.fp == "FY");
-                                                if (lastYearlyData != null)
-                                                    operatingIncome = lastYearlyData;
+                                                {
+                                                    var lastYearlyData = operatingIncomes.LastOrDefault(c => c.GetValue("fp").GetString() == "FY");
+                                                    if (lastYearlyData.ValueKind != JsonValueKind.Undefined)
+                                                    {
+                                                        fields["OperatingIncome"].Value = lastYearlyData.GetValue("val").GetDecimal();
+                                                        fields["OperatingIncome"].LastFilingDate = lastYearlyData.GetValue("filed").GetDateTime();
+                                                    }
+                                                }
                                             }
                                         }
                                     }
 
-                                    var ticker = tickerData[2].ToString();
-                                    var company = context.Companies.FirstOrDefault(c => c.CIK == cik);
+                                    var ticker = tickerData.EnumerateArray().FirstOrDefault(c => c[0].GetInt32() == cikAsInt).Deserialize<object[]>();
+                                    var tickerSymbol = ticker[2].ToString();
+                                    var tickerCompanyName = ticker[1].ToString();
+                                    var tickerExchange = ticker[3].ToString();
+                                    var company = context.Companies.FirstOrDefault(c => c.CIK == cikAsString);
                                     company ??= new Company
                                     {
-                                        CIK = cik,
-                                        Ticker = ticker,
-                                        Exchange = tickerData[3]?.ToString(),
-                                        CompanyName = tickerData[1]?.ToString()
+                                        CIK = cikAsString,
+                                        Ticker = tickerSymbol,
+                                        Exchange = tickerCompanyName,
+                                        CompanyName = tickerExchange
                                     };
 
-                                    var employedCapital = currentAssets.val + propertyPlantAndEquipment.val;
-                                    company.CashAndCashEquivalents = cashAndCashEquivalents.val;
-                                    company.CurrentAssets = currentAssets.val;
-                                    company.PropertyPlantAndEquipment = propertyPlantAndEquipment.val;
-                                    company.Assets = assets.val;
-                                    company.TotalDebt = longTermDebt.val + currentDebt.val;
-                                    company.Liabilities = liabilities.val;
-                                    company.OperatingIncome = operatingIncome.val;
-                                    company.NetCurrentAssets = currentAssets.val - liabilities.val;
-                                    company.TangibleAssets = assets.val - goodwill.val - intangibleAssets.val - trademarks.val;
-                                    company.EmployedCapital = employedCapital;
-                                    company.ReturnOnEmployedCapital = (float)(employedCapital != 0 ? operatingIncome.val / employedCapital : 0);
-                                    company.LastFilingDate = filedDate.Value;
+                                    company.CashAndCashEquivalents = fields["CashAndCashEquivalents"].Value ?? 0;
+                                    company.CurrentAssets = fields["CurrentAssets"].Value ?? 0;
+                                    company.PropertyPlantAndEquipment = fields["PropertyPlantAndEquipment"].Value ?? 0;
+                                    company.IntangibleAssets = fields["IntangibleAssets"].Value ?? 0;
+                                    company.Assets = fields["Assets"].Value ?? 0;
+                                    company.Debt = fields["Debt"].Value ?? 0;
+                                    company.Liabilities = fields["Liabilities"].Value ?? 0;
+                                    company.OperatingIncome = fields["OperatingIncome"].Value ?? 0;
+                                    company.LastFilingDate = filingDate.Value;
 
                                     if (fmpConfig != null && (fmpConfig.LastDay == null || fmpConfig.LastDay < DateTime.Today))
                                     {
                                         if (_fmpCalls < fmpConfig.MaxRequestsPerDay)
                                         {
                                             if (_currentBatch >= fmpConfig.LastBatch
-                                                && operatingIncome.filed != null
+                                                && fields["OperatingIncome"].Value != default
                                                 && (company.LastMarketCapitalizationDate == null
-                                                || company.LastMarketCapitalizationDate != null && company.LastMarketCapitalizationDate.Value.AddSeconds(fmpConfig.MinimumTimeinSecondsToUpdateMarketCapitalizations) < DateTime.Now))
+                                                    || company.LastMarketCapitalizationDate != null && company.LastMarketCapitalizationDate.Value.AddSeconds(fmpConfig.MinimumTimeinSecondsToUpdateMarketCapitalizations) < DateTime.Now))
                                             {
-                                                fmpTasks.Add(fmpApiClient.CompanyValuation.GetQuoteAsync(ticker));
+                                                fmpTasks.Add(fmpApiClient.CompanyValuation.GetQuoteAsync(tickerSymbol));
                                                 _fmpCalls++;
                                             }
                                         }
@@ -325,7 +357,7 @@ namespace Updater
                                         }
                                     }
 
-                                    if (!context.Companies.Any(c => c.CIK == cik))
+                                    if (!context.Companies.Any(c => c.CIK == cikAsString))
                                     {
                                         context.Companies.Add(company);
                                     }
@@ -347,11 +379,8 @@ namespace Updater
                             if (company != null)
                             {
                                 var marketCapitalization = (decimal)response.Data.MarketCap;
-                                var enterpriseValue = marketCapitalization + company.TotalDebt - company.CashAndCashEquivalents;
                                 company.CompanyName = response.Data.Name;
                                 company.LastMarketCapitalization = marketCapitalization;
-                                company.EnterpriseValue = enterpriseValue;
-                                company.OperatingIncomeToEnterpriseValue = (float)(enterpriseValue != 0 ? company.OperatingIncome / enterpriseValue : 0);
                                 company.LastMarketCapitalizationDate = DateTime.Now;
 
                                 context.SaveChanges();
@@ -374,7 +403,7 @@ namespace Updater
             await Task.Delay(1000, stoppingToken);
         }
 
-        private static async Task<T> ReadJsonFileAsync<T>(string path)
+        private static async Task<JsonElement> ReadCompanyDocumentAsync(string path)
         {
             // Adjust this to be a reasonably sized multiple of 4096 that's at least larger than any file you'll process.
             const int asyncFileStreamBufferSize = 1 * 1024 * 8192;
@@ -382,7 +411,8 @@ namespace Updater
             using FileStream fs = new(path: path, mode: FileMode.Open, access: FileAccess.Read, share: FileShare.Read, bufferSize: asyncFileStreamBufferSize, useAsync: true);
             using StreamReader rdr = new(fs);
             string fileText = await rdr.ReadToEndAsync();
-            return JsonSerializer.Deserialize<T>(fileText);
+            using var document = JsonDocument.Parse(fileText);
+            return document.RootElement.Clone();
         }
     }
 }
