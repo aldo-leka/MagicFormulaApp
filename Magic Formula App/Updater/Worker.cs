@@ -78,23 +78,23 @@ namespace Updater
 
                     foreach (var document in companyDocuments)
                     {
-                        if (document.TryGetProperty("cik", out var cik) && document.FindProperty("facts.us-gaap", out _))
+                        if (document.FindProperty("cik", out var cik) && document.FindProperty("facts.us-gaap", out _))
                         {
-                            var cikAsInt = default(int?);
-                            var cikAsString = default(string);
+                            var cikInt = default(int?);
+                            var cikString = default(string);
                             switch (cik.ValueKind)
                             {
                                 case JsonValueKind.String:
-                                    cikAsString = cik.GetString();
-                                    cikAsInt = int.Parse(cikAsString);
+                                    cikString = cik.GetString();
+                                    cikInt = int.Parse(cikString);
                                 break;
                                 case JsonValueKind.Number:
-                                    cikAsInt = cik.GetInt32();
-                                    cikAsString = cikAsInt.ToString();
+                                    cikInt = cik.GetInt32();
+                                    cikString = cikInt.ToString();
                                 break;
                             }
 
-                            if (_tickerData.FindProperty("data", out var tickerData) && tickerData.EnumerateArray().FirstOrDefault(c => c[0].GetInt32() == cikAsInt).ValueKind != JsonValueKind.Undefined)
+                            if (_tickerData.FindProperty("data", out var tickerData) && tickerData.EnumerateArray().FirstOrDefault(c => c[0].GetInt32() == cikInt).ValueKind != JsonValueKind.Undefined)
                             {
                                 // sometimes these fields are null so no filed is available.
                                 // they should be considered with value 0 in these situations.
@@ -163,6 +163,18 @@ namespace Updater
                                         {
                                             KeyDate = new Dictionary<string, DateTime?>() { { "Liabilities", default } },
                                             BackupKeyDate = new Dictionary<string, DateTime?>() {
+                                                { "AccountsPayableCurrent", default },
+                                                { "AccruedLiabilitiesCurrent", default },
+                                                { "EmployeeRelatedLiabilitiesCurrent", default },
+                                                { "AccruedEmployeeBenefitsAndBonus", default },
+                                                { "AccruedIncomeTaxesCurrent", default },
+                                                { "ContractWithCustomerLiabilityCurrent", default },
+                                                { "OperatingLeaseLiabilityCurrent", default },
+                                                { "OtherAccruedLiabilitiesCurrent", default },
+                                                { "ConvertibleNotesPayable", default },
+                                                { "OperatingLeaseLiabilityNoncurrent", default },
+                                                { "DeferredRevenueAndCreditsNoncurrent", default },
+                                                { "DeferredIncomeTaxLiabilitiesNet", default },
                                                 { "LongTermDebt", default },
                                                 { "LongTermDebtNoncurrent", default } ,
                                                 { "LongTermNotesPayable", default } ,
@@ -170,7 +182,10 @@ namespace Updater
                                                 { "LongTermDebtCurrent", default } ,
                                                 { "DebtCurrent", default },
                                                 { "NotesPayableCurrent", default },
-                                                { "LinesOfCreditCurrent", default }
+                                                { "LinesOfCreditCurrent", default },
+                                                { "PostemploymentBenefitsLiabilityNoncurrent", default },
+                                                { "OtherLiabilities", default },
+                                                { "OtherLiabilitiesNoncurrent", default }
                                             }
                                         }
                                     },
@@ -314,19 +329,19 @@ namespace Updater
                                             }
                                             catch (Exception ex)
                                             {
-                                                _logger.LogError("An error occurred when updating operating income for cik: {cik}\n{ex}", cikAsString, ex);
+                                                _logger.LogError("An error occurred when updating operating income for cik: {cik}\n{ex}", cikString, ex);
                                             }
                                         }
                                     }
 
-                                    var ticker = tickerData.EnumerateArray().FirstOrDefault(c => c[0].GetInt32() == cikAsInt).Deserialize<object[]>();
+                                    var ticker = tickerData.EnumerateArray().FirstOrDefault(c => c[0].GetInt32() == cikInt).Deserialize<object[]>();
                                     var tickerSymbol = ticker[2].ToString();
                                     var tickerCompanyName = ticker[1].ToString();
                                     var tickerExchange = ticker[3]?.ToString();
-                                    var company = context.Companies.FirstOrDefault(c => c.CIK == cikAsString);
+                                    var company = context.Companies.FirstOrDefault(c => c.CIK == cikString);
                                     company ??= new Company
                                     {
-                                        CIK = cikAsString,
+                                        CIK = cikString,
                                         Ticker = tickerSymbol,
                                         Exchange = tickerCompanyName,
                                         CompanyName = tickerExchange
@@ -363,7 +378,7 @@ namespace Updater
                                         }
                                     }
 
-                                    if (!context.Companies.Any(c => c.CIK == cikAsString))
+                                    if (!context.Companies.Any(c => c.CIK == cikString))
                                     {
                                         context.Companies.Add(company);
                                     }
@@ -405,8 +420,6 @@ namespace Updater
                     }
                 }
             }
-            
-            await Task.Delay(1000, stoppingToken);
         }
 
         private static async Task<JsonElement> ReadCompanyDocumentAsync(string path)
