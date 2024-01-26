@@ -1,8 +1,8 @@
 ![alt text](Magic%20Formula%20App/Images/app.png)
 
-This project was inspired by revisiting Joel Greenblatt's Magic Formula for selecting stocks revisited by [The Manual of Ideas book](https://www.amazon.com/Manual-Ideas-Framework-Finding-Investments/dp/1118083652/ref=sr_1_1?crid=SZFH1SOLV3UG&keywords=manual+of+ideas&qid=1706258281&sprefix=manual+of+idea%2Caps%2C157&sr=8-1).
+This project was inspired by Joel Greenblatt's Magic Formula for selecting stocks revisited by [The Manual of Ideas book](https://www.amazon.com/Manual-Ideas-Framework-Finding-Investments/dp/1118083652/ref=sr_1_1?crid=SZFH1SOLV3UG&keywords=manual+of+ideas&qid=1706258281&sprefix=manual+of+idea%2Caps%2C157&sr=8-1).
 
-The data processing is based on the nightly recompiled bulk archive ZIP file **companyfacts.zip** from SEC.
+The data processing is based on the nightly recompiled bulk archive ZIP file ***companyfacts.zip*** from SEC.
 
 **This project is built in three parts:**
 
