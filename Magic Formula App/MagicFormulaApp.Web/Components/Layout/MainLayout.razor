@@ -1,0 +1,131 @@
+﻿@inherits LayoutComponentBase
+@using MagicFormulaApp.Web.Models
+@using MagicFormulaApp.Web.Services
+@using Microsoft.Net.Http.Headers
+@inject SearchSymbolService SearchSymbolService
+@inject ChangeTextSizeService TextSizeService
+@inject IJSRuntime JS
+@inject IConfiguration Config
+
+<PageTitle>SupaInvestor</PageTitle>
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Dense="true" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5" Class="ml-3 mr-2">SupaInvestor</MudText>
+        <MudAutocomplete T="Ticker" Label="Ticker" Dense="true" Variant="Variant.Filled"
+                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Inherit"
+                         SearchFunc="@SearchSymbol"
+                         ToStringFunc="@(e => e == null ? null : $"{e.Symbol} ({e.Name})")"
+                         ValueChanged="OnSymbolChanged"
+                         Class="search-bar" />
+        <MudSpacer />
+        <MudMenu ActivationEvent="@MouseEvent.MouseOver" Icon="@Icons.Material.Filled.TextFields" Color="Color.Inherit">
+            <MudMenuItem OnClick="@(() => ChangeTextSize("Small"))">
+                <MudText Typo="Typo.body2">A</MudText>
+            </MudMenuItem>
+            <MudMenuItem OnClick="@(() => ChangeTextSize("Medium"))">
+                <MudText Typo="Typo.body1">A</MudText>
+            </MudMenuItem>
+            <MudMenuItem OnClick="@(() => ChangeTextSize("Large"))">
+                <MudText Typo="Typo.h6">A</MudText>
+            </MudMenuItem>
+        </MudMenu>
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+<style>
+    .search-bar {
+        flex-grow: 1;
+        max-width: 300px;
+        margin-left: 20px; /* Adds some space after "SupaInvestor" */
+        background: rgba(255, 255, 255, 0.3); /* Light but visible background */
+        border-radius: 4px;
+        border: none;
+        color: white; /* Ensure text color is white */
+    }
+
+        /* Targeting the input field directly */
+        .search-bar .mud-input-slot {
+            color: white !important;
+            background: transparent !important; /* Clear background */
+            box-shadow: none !important; /* No shadow */
+            border: none !important; /* No borders */
+        }
+
+        /* Ensure the search icon is also white */
+        .search-bar .mud-input-adornment .mud-icon-button {
+            color: white !important;
+        }
+
+        /* Removing the underline from the input */
+        .search-bar .mud-input-underline::before,
+        .search-bar .mud-input-underline::after {
+            display: none !important;
+        }
+
+    /* Extra targeting based on your detailed structure to ensure styles are applied */
+    .mud-input-root.mud-input-root-filled.mud-input-root-adorned-end {
+        border-bottom: none !important; /* Ensures no bottom border line */
+    }
+
+    /* Label styling for consistency */
+    .search-bar .mud-input-label {
+        color: white !important;
+    }
+</style>
+
+<script>
+    window.selectDefaultTextSize = (size) => {
+        var element = $("p.mud-toggle-item-text:contains('" + size + "')");
+        element.click();
+    };
+</script>
+
+@code {
+    private List<Ticker> tickers;
+    private bool _drawerOpen = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = new HttpClient();
+        client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.UserAgent, "Lekasoft aldo@lekasoft.com");
+
+        var response = await client.GetFromJsonAsync<Dictionary<string, Ticker>>("https://www.sec.gov/files/company_tickers.json");
+        tickers = response.Values.ToList();
+    }
+
+    private async Task<IEnumerable<Ticker>> SearchSymbol(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value))
+            return Array.Empty<Ticker>();
+
+        return await Task.FromResult(tickers.Where(t => (t.Symbol + t.Name).Contains(value, StringComparison.InvariantCultureIgnoreCase)));
+    }
+
+    private async Task OnSymbolChanged(Ticker value)
+    {
+        await SearchSymbolService.OnSymbolChangedAsync(this, new SearchSymbolEventArgs(value));
+    }
+
+    private void ChangeTextSize(string size)
+    {
+        TextSizeService.OnTextSizeChanged(this, new ChangeTextSizeEventArgs(size));
+    }
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

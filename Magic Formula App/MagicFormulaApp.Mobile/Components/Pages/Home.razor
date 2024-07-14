@@ -1,0 +1,18 @@
+﻿@page "/"
+@using Microsoft.Net.Http.Headers
+
+@((MarkupString)_html)
+
+@code {
+    private string _html;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = new HttpClient();
+        //client.DefaultRequestHeaders.Add(HeaderNames.AcceptEncoding, "gzip, deflate");
+        //client.DefaultRequestHeaders.Add(HeaderNames.Host, "www.sec.gov");
+        client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.UserAgent, "Lekasoft aldo@lekasoft.com");
+        var response = await client.GetAsync("https://www.sec.gov/Archives/edgar/data/1410172/000121390023024745/f10k2022_rubicontech.htm");
+        _html = await response.Content.ReadAsStringAsync();
+    }
+}

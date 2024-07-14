@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Shared.Models;
+using MagicFormulaApp.Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 

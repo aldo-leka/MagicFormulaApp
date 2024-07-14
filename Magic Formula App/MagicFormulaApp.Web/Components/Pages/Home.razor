@@ -1,0 +1,97 @@
+﻿@page "/"
+@using System.Text.RegularExpressions
+@using HtmlAgilityPack
+@using MagicFormulaApp.Web.Models
+@using MagicFormulaApp.Web.Services
+@using Microsoft.Net.Http.Headers
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject SearchSymbolService SearchSymbolService
+@inject ChangeTextSizeService TextSizeService
+@inject OpenFilingService OpenFilingService
+@inject IConfiguration Config
+
+@((MarkupString)htmlContent)
+
+<script>
+    window.scrollTop = function () {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+</script>
+
+@code {
+    private string htmlContent;
+    private string initialHtmlContent;
+    private string currentTextSize;
+
+    protected override async Task OnInitializedAsync()
+    {
+        this.SearchSymbolService.SymbolChanged += OnSymbolChanged;
+        this.TextSizeService.TextSizeChanged += OnTextSizeChanged;
+        this.OpenFilingService.FilingSelected += OnFilingSelected;
+        currentTextSize = Config.GetValue<string>("DefaultTextSize");
+        await Task.CompletedTask;
+    }
+
+    private async Task OnFilingSelected(object sender, EventArgs e)
+    {
+        var args = (OpenFilingEventArgs)e;
+        var client = new HttpClient();
+        client.DefaultRequestHeaders.TryAddWithoutValidation(HeaderNames.UserAgent, "Lekasoft aldo@lekasoft.com");
+        initialHtmlContent = await client.GetStringAsync(args.Report.Url);
+
+        OnTextSizeChanged(default, new ChangeTextSizeEventArgs(currentTextSize));
+        await JS.InvokeVoidAsync("scrollTop");
+    }
+
+    private async Task OnSymbolChanged(object sender, EventArgs e)
+    {
+        
+    }
+
+    private void OnTextSizeChanged(object sender, EventArgs e)
+    {
+        var args = (ChangeTextSizeEventArgs)e;
+        var sizeMultiplier = 0d;
+
+        switch (args.Size)
+        {
+            case "Small":
+                sizeMultiplier = 1;
+                break;
+            case "Medium":
+                sizeMultiplier = 1.3;
+                break;
+            case "Large":
+                sizeMultiplier = 1.6;
+                break;
+        }
+
+        string pattern = @"(font|font-size):\s*(\d+)pt";
+
+        // Use Regex.Replace with a MatchEvaluator to change the font size
+        htmlContent = Regex.Replace(initialHtmlContent, pattern, match =>
+        {
+            // Parse the captured group as an integer
+            int originalSize = int.Parse(match.Groups[2].Value);
+
+            // Double the size
+            int newSize = (int)(originalSize * sizeMultiplier);
+
+            // Replace with the new font size
+            return $"{match.Groups[1].Value}: {newSize}pt";
+        });
+
+        currentTextSize = args.Size;
+
+        StateHasChanged();
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        this.SearchSymbolService.SymbolChanged -= OnSymbolChanged;
+        this.TextSizeService.TextSizeChanged -= OnTextSizeChanged;
+        this.OpenFilingService.FilingSelected -= OnFilingSelected;
+        await Task.CompletedTask;
+    }
+}

@@ -5,11 +5,19 @@ VisualStudioVersion = 17.8.34408.163
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Magic Formula App", "Magic Formula App\Magic Formula App.csproj", "{E7623B54-E226-40DB-96BC-0A47A16FB008}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared", "Shared\Shared.csproj", "{561799AE-215E-4E05-A4B1-5A4CE619AE23}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MagicFormulaApp.Shared", "MagicFormulaApp.Shared\MagicFormulaApp.Shared.csproj", "{561799AE-215E-4E05-A4B1-5A4CE619AE23}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Importer", "Importer\Importer.csproj", "{5A965388-2009-4F7B-BCE9-A4390524BE14}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MagicFormulaApp.Importer", "MagicFormulaApp.Importer\MagicFormulaApp.Importer.csproj", "{5A965388-2009-4F7B-BCE9-A4390524BE14}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Updater", "Updater\Updater.csproj", "{C3B86ED3-2C83-4CCC-8203-3E12CE53DAAC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MagicFormulaApp.Updater", "MagicFormulaApp.Updater\MagicFormulaApp.Updater.csproj", "{C3B86ED3-2C83-4CCC-8203-3E12CE53DAAC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MagicFormulaApp.LocalTests", "MagicFormulaApp.LocalTests\MagicFormulaApp.LocalTests.csproj", "{FDB0E84D-73FF-47F0-BB0A-716E3F633EEC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XBRL.Importer", "XBRL.Importer\XBRL.Importer.csproj", "{0CD8F0C7-6549-4855-B190-408192438463}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MagicFormulaApp.Web", "MagicFormulaApp.Web\MagicFormulaApp.Web.csproj", "{B6FDE298-984E-4A5D-B285-C033E9B654F0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MagicFormulaApp.Mobile", "MagicFormulaApp.Mobile\MagicFormulaApp.Mobile.csproj", "{6FFEE843-9211-4F9B-91FC-A54BBF4BFC2D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +41,24 @@ Global
 		{C3B86ED3-2C83-4CCC-8203-3E12CE53DAAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3B86ED3-2C83-4CCC-8203-3E12CE53DAAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3B86ED3-2C83-4CCC-8203-3E12CE53DAAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDB0E84D-73FF-47F0-BB0A-716E3F633EEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDB0E84D-73FF-47F0-BB0A-716E3F633EEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDB0E84D-73FF-47F0-BB0A-716E3F633EEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDB0E84D-73FF-47F0-BB0A-716E3F633EEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CD8F0C7-6549-4855-B190-408192438463}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CD8F0C7-6549-4855-B190-408192438463}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CD8F0C7-6549-4855-B190-408192438463}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CD8F0C7-6549-4855-B190-408192438463}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6FDE298-984E-4A5D-B285-C033E9B654F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6FDE298-984E-4A5D-B285-C033E9B654F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6FDE298-984E-4A5D-B285-C033E9B654F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6FDE298-984E-4A5D-B285-C033E9B654F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FFEE843-9211-4F9B-91FC-A54BBF4BFC2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FFEE843-9211-4F9B-91FC-A54BBF4BFC2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FFEE843-9211-4F9B-91FC-A54BBF4BFC2D}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{6FFEE843-9211-4F9B-91FC-A54BBF4BFC2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FFEE843-9211-4F9B-91FC-A54BBF4BFC2D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FFEE843-9211-4F9B-91FC-A54BBF4BFC2D}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

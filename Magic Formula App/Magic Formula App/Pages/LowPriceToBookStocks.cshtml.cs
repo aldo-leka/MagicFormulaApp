@@ -1,7 +1,7 @@
 using Magic_Formula_App.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Shared.Models;
+using MagicFormulaApp.Shared.Models;
 
 namespace Magic_Formula_App.Pages
 {
